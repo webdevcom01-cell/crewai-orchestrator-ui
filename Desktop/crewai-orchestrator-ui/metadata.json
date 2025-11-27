@@ -1,0 +1,5 @@
+{
+  "name": "CrewAI Orchestrator UI",
+  "description": "A React-based dashboard for configuring, managing, and simulating Multi-Agent systems using CrewAI concepts and Gemini for simulation.",
+  "requestFramePermissions": []
+}
