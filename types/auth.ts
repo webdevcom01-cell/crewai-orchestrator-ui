@@ -44,10 +44,13 @@ export interface Workspace {
 }
 
 export interface WorkspaceMember {
-  userId: string;
+  id: string;
+  odred?: string;
+  userId?: string;
+  workspaceId: string;
   user: User;
   role: UserRole;
-  invitedBy: string;
+  invitedBy?: string;
   joinedAt: string;
 }
 

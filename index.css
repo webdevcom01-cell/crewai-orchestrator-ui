@@ -43,6 +43,110 @@
 }
 
 /* ============================================
+   🌙 DARK THEME (Default)
+============================================ */
+.dark, [data-theme="dark"] {
+  --bg-primary: #050608;
+  --bg-surface: #080F1A;
+  --bg-surface-hover: #0c1621;
+  --bg-card: rgba(8, 15, 26, 0.85);
+  --bg-card-hover: rgba(12, 22, 33, 0.9);
+  --text-primary: #FFFFFF;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
+  --border-subtle: rgba(17, 24, 39, 0.8);
+  --border-default: rgba(34, 197, 220, 0.15);
+  --border-hover: rgba(34, 197, 220, 0.4);
+  --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  
+  color-scheme: dark;
+}
+
+/* ============================================
+   ☀️ LIGHT THEME
+============================================ */
+.light, [data-theme="light"] {
+  --bg-primary: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.95);
+  --bg-card-hover: rgba(241, 245, 249, 0.95);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --border-subtle: rgba(226, 232, 240, 0.8);
+  --border-default: rgba(99, 102, 241, 0.2);
+  --border-hover: rgba(99, 102, 241, 0.5);
+  --glow-cyan: 0 0 40px rgba(99, 102, 241, 0.15);
+  --glow-green: 0 0 40px rgba(34, 197, 94, 0.15);
+  --shadow-card: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  
+  /* Light mode accent adjustments */
+  --accent-cyan: #6366f1;
+  
+  color-scheme: light;
+}
+
+/* Light mode specific overrides */
+.light .dot-grid-canvas {
+  opacity: 0.3;
+}
+
+.light {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Light mode navigation */
+.light nav,
+.light .sidebar {
+  background: var(--bg-surface);
+  border-color: var(--border-default);
+}
+
+/* Light mode cards */
+.light .tilt-card,
+.light [class*="bg-gray-900"],
+.light [class*="bg-slate-900"] {
+  background: var(--bg-card) !important;
+  border-color: var(--border-default) !important;
+}
+
+/* Light mode inputs */
+.light input,
+.light textarea,
+.light select {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Light mode buttons */
+.light .cyber-btn-secondary {
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.light .cyber-btn-secondary:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+/* Light mode text overrides */
+.light [class*="text-white"] {
+  color: var(--text-primary) !important;
+}
+
+.light [class*="text-gray-"] {
+  color: var(--text-secondary) !important;
+}
+
+/* ============================================
    🔵 DOT GRID CANVAS
 ============================================ */
 .dot-grid-canvas {

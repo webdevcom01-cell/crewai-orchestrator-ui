@@ -1,0 +1,419 @@
+// CrewAI Orchestrator - Prisma Schema
+// PostgreSQL Database Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastLoginAt   DateTime?
+  emailVerified Boolean  @default(false)
+  
+  // Relations
+  workspaceMembers WorkspaceMember[]
+  createdAgents    Agent[]
+  createdTasks     Task[]
+  runs             Run[]
+  apiKeys          ApiKey[]
+  notifications    Notification[]
+  auditLogs        AuditLog[]
+  
+  @@map("users")
+}
+
+// ============================================
+// WORKSPACES & TEAMS
+// ============================================
+
+model Workspace {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logo        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Subscription & Billing
+  plan           String   @default("free") // free, starter, pro, enterprise
+  stripeCustomerId String?
+  subscriptionId   String?
+  subscriptionStatus String @default("active")
+  
+  // Branding (White Label)
+  primaryColor   String @default("#22d3ee")
+  secondaryColor String @default("#10b981")
+  
+  // Relations
+  members      WorkspaceMember[]
+  agents       Agent[]
+  tasks        Task[]
+  crews        Crew[]
+  runs         Run[]
+  apiKeys      ApiKey[]
+  integrations Integration[]
+  schedules    Schedule[]
+  versions     Version[]
+  auditLogs    AuditLog[]
+  
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String
+  role        String   @default("member") // owner, admin, member, viewer
+  joinedAt    DateTime @default(now())
+  invitedBy   String?
+  
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, workspaceId])
+  @@map("workspace_members")
+}
+
+// ============================================
+// AI AGENTS
+// ============================================
+
+model Agent {
+  id          String   @id @default(uuid())
+  workspaceId String
+  createdById String
+  
+  name        String
+  role        String
+  goal        String
+  backstory   String   @db.Text
+  
+  // AI Configuration
+  model       String   @default("gemini-1.5-flash")
+  temperature Float    @default(0.7)
+  maxTokens   Int      @default(4096)
+  
+  // Tools
+  tools       String[] @default([])
+  
+  // Status
+  isActive    Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  tasks       Task[]    @relation("AgentTasks")
+  crewAgents  CrewAgent[]
+  
+  @@map("agents")
+}
+
+// ============================================
+// TASKS
+// ============================================
+
+model Task {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  createdById   String
+  agentId       String?
+  
+  description   String   @db.Text
+  expectedOutput String  @db.Text
+  context       String?  @db.Text
+  
+  // Task Configuration
+  priority      Int      @default(0)
+  async         Boolean  @default(false)
+  humanInput    Boolean  @default(false)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  agent         Agent?    @relation("AgentTasks", fields: [agentId], references: [id])
+  crewTasks     CrewTask[]
+  runTasks      RunTask[]
+  
+  @@map("tasks")
+}
+
+// ============================================
+// CREWS (Workflow Templates)
+// ============================================
+
+model Crew {
+  id          String   @id @default(uuid())
+  workspaceId String
+  
+  name        String
+  description String?
+  process     String   @default("sequential") // sequential, hierarchical
+  verbose     Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  agents      CrewAgent[]
+  tasks       CrewTask[]
+  runs        Run[]
+  schedules   Schedule[]
+  
+  @@map("crews")
+}
+
+model CrewAgent {
+  id      String @id @default(uuid())
+  crewId  String
+  agentId String
+  order   Int    @default(0)
+  
+  crew  Crew  @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  @@unique([crewId, agentId])
+  @@map("crew_agents")
+}
+
+model CrewTask {
+  id     String @id @default(uuid())
+  crewId String
+  taskId String
+  order  Int    @default(0)
+  
+  crew Crew @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  @@unique([crewId, taskId])
+  @@map("crew_tasks")
+}
+
+// ============================================
+// RUN HISTORY
+// ============================================
+
+model Run {
+  id          String   @id @default(uuid())
+  workspaceId String
+  crewId      String
+  userId      String
+  
+  status      String   @default("pending") // pending, running, completed, failed, cancelled
+  
+  // Execution details
+  startedAt   DateTime?
+  completedAt DateTime?
+  duration    Int?     // in seconds
+  
+  // Results
+  output      String?  @db.Text
+  error       String?  @db.Text
+  
+  // Metrics
+  tokensUsed  Int      @default(0)
+  cost        Float    @default(0)
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  crew        Crew      @relation(fields: [crewId], references: [id])
+  user        User      @relation(fields: [userId], references: [id])
+  runTasks    RunTask[]
+  
+  @@map("runs")
+}
+
+model RunTask {
+  id        String   @id @default(uuid())
+  runId     String
+  taskId    String
+  
+  status    String   @default("pending")
+  output    String?  @db.Text
+  startedAt DateTime?
+  completedAt DateTime?
+  
+  run  Run  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id])
+  
+  @@map("run_tasks")
+}
+
+// ============================================
+// API KEYS
+// ============================================
+
+model ApiKey {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  
+  name        String
+  key         String   @unique
+  keyHash     String   // For secure comparison
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  
+  // Permissions
+  permissions String[] @default(["read"])
+  
+  // Rate limiting
+  rateLimit   Int      @default(100) // requests per minute
+  
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  
+  @@map("api_keys")
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id          String   @id @default(uuid())
+  workspaceId String
+  
+  type        String   // slack, discord, github, webhook
+  name        String
+  config      Json     // Webhook URL, tokens, etc.
+  
+  // Events to trigger
+  events      String[] @default([])
+  
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  @@map("integrations")
+}
+
+// ============================================
+// SCHEDULER
+// ============================================
+
+model Schedule {
+  id          String   @id @default(uuid())
+  workspaceId String
+  crewId      String
+  
+  name        String
+  cron        String   // Cron expression
+  timezone    String   @default("UTC")
+  
+  isActive    Boolean  @default(true)
+  lastRunAt   DateTime?
+  nextRunAt   DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  crew        Crew      @relation(fields: [crewId], references: [id])
+  
+  @@map("schedules")
+}
+
+// ============================================
+// VERSION CONTROL
+// ============================================
+
+model Version {
+  id          String   @id @default(uuid())
+  workspaceId String
+  
+  name        String
+  description String?
+  snapshot    Json     // Full workspace snapshot
+  
+  createdAt   DateTime @default(now())
+  createdBy   String
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  
+  @@map("versions")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  
+  type      String   // run_completed, team_invite, billing_alert, etc.
+  title     String
+  message   String
+  data      Json?
+  
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("notifications")
+}
+
+// ============================================
+// AUDIT LOG
+// ============================================
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  workspaceId String
+  userId      String
+  
+  action      String   // create, update, delete, run, etc.
+  resource    String   // agent, task, crew, etc.
+  resourceId  String
+  
+  oldData     Json?
+  newData     Json?
+  
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  
+  @@map("audit_logs")
+}

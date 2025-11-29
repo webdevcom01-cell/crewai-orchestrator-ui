@@ -1,18 +1,42 @@
 import React, { useState } from 'react';
-import { Users, CheckSquare, PlayCircle, Settings, Box, FileCode, History, Menu, X } from 'lucide-react';
+import { 
+  Users, 
+  CheckSquare, 
+  PlayCircle, 
+  Settings, 
+  Box, 
+  FileCode, 
+  History, 
+  Menu, 
+  X,
+  LayoutDashboard,
+  Library,
+  UserPlus,
+  ClipboardList,
+  Bell
+} from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
+import { preloadRoute } from '../lib/lazyLoad';
 
 const navItems = [
-  { id: 'agents', label: 'Agents', icon: Users, path: '/' },
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare, path: '/tasks' },
-  { id: 'run', label: 'Run Simulation', icon: PlayCircle, path: '/run' },
-  { id: 'history', label: 'History', icon: History, path: '/history' },
-  { id: 'export', label: 'Export Code', icon: FileCode, path: '/export' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  { id: 'dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, path: '/' },
+  { id: 'agents', labelKey: 'nav.agents', icon: Users, path: '/agents' },
+  { id: 'tasks', labelKey: 'nav.tasks', icon: CheckSquare, path: '/tasks' },
+  { id: 'templates', labelKey: 'nav.templates', icon: Library, path: '/templates' },
+  { id: 'run', labelKey: 'nav.run', icon: PlayCircle, path: '/run' },
+  { id: 'history', labelKey: 'nav.history', icon: History, path: '/history' },
+  { id: 'collaboration', labelKey: 'nav.collaboration', icon: UserPlus, path: '/collaboration' },
+  { id: 'audit', labelKey: 'nav.audit', icon: ClipboardList, path: '/audit' },
+  { id: 'notifications', labelKey: 'nav.notifications', icon: Bell, path: '/notifications' },
+  { id: 'export', labelKey: 'nav.export', icon: FileCode, path: '/export' },
+  { id: 'settings', labelKey: 'nav.settings', icon: Settings, path: '/settings' },
 ];
 
 const Navigation: React.FC = React.memo(() => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { t } = useTranslation();
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -20,6 +44,11 @@ const Navigation: React.FC = React.memo(() => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  // Preload route on hover
+  const handleMouseEnter = (path: string) => {
+    preloadRoute(path);
   };
 
   return (
@@ -60,13 +89,14 @@ const Navigation: React.FC = React.memo(() => {
         </div>
         
         {/* Navigation Links */}
-        <nav className="flex-1 px-4 py-4 space-y-2" role="navigation" aria-label="Primary">
+        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto" role="navigation" aria-label="Primary">
           {navItems.map((item) => (
             <NavLink
               key={item.id}
               to={item.path}
               onClick={closeMobileMenu}
-              aria-label={item.label}
+              onMouseEnter={() => handleMouseEnter(item.path)}
+              aria-label={t(item.labelKey)}
               className={({ isActive }) => `w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-250 ${
                 isActive 
                   ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 shadow-[0_0_20px_rgba(34,197,220,0.15)]' 
@@ -74,13 +104,14 @@ const Navigation: React.FC = React.memo(() => {
               }`}
             >
               <item.icon size={20} aria-hidden="true" />
-              <span className="font-medium">{item.label}</span>
+              <span className="font-medium">{t(item.labelKey)}</span>
             </NavLink>
           ))}
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-cyan-500/15">
+        {/* Footer with Language Selector */}
+        <div className="p-4 border-t border-cyan-500/15 space-y-3">
+          <LanguageSelector variant="compact" />
           <div className="flex items-center gap-3 text-xs text-slate-500 font-mono">
             <Box size={14} aria-hidden="true" />
             <span>v2.0.0 (Enterprise)</span>

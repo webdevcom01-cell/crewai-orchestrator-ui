@@ -74,7 +74,7 @@ const HistoryView: React.FC = () => {
   return (
     <div className="flex flex-col lg:flex-row h-full w-full overflow-hidden text-slate-200">
       {/* Left Side - Run History List */}
-      <div className="w-full lg:w-1/3 lg:border-r border-cyan-500/15 p-4 md:p-6 overflow-y-auto backdrop-blur-sm max-h-[50vh] lg:max-h-none">
+      <div className="w-full lg:w-1/3 lg:border-r border-cyan-500/15 p-4 md:p-6 overflow-y-auto max-h-[50vh] lg:max-h-none">
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-white">Run History</h2>

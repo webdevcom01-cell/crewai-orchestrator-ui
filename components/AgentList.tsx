@@ -11,7 +11,7 @@ interface AgentListProps {
 
 const AgentList: React.FC<AgentListProps> = React.memo(({ agents, editingId, onEdit, onCreate }) => {
   return (
-    <div className="w-full lg:w-1/3 lg:border-r border-cyan-500/15 p-4 md:p-6 overflow-y-auto backdrop-blur-sm max-h-[50vh] lg:max-h-none">
+    <div className="w-full lg:w-1/3 lg:border-r border-cyan-500/15 p-4 md:p-6 overflow-y-auto max-h-[50vh] lg:max-h-none">
       <div className="flex justify-between items-center mb-6">
         <h2 
           className="text-2xl font-bold text-white cursor-default"

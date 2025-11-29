@@ -1,11 +1,14 @@
 import express, { Express, Request, Response } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { config, validateConfig } from './config/index.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { authenticate } from './middleware/auth.js';
+import { csrfTokenGenerator, csrfProtection, csrfTokenEndpoint } from './middleware/csrf.js';
 import authRoutes from './routes/auth.routes.js';
 import aiRoutes from './routes/ai.routes.js';
 import agentsRoutes from './routes/agents.routes.js';
@@ -16,6 +19,9 @@ import workspacesRoutes from './routes/workspaces.routes.js';
 import integrationsRoutes from './routes/integrations.routes.js';
 import schedulesRoutes from './routes/schedules.routes.js';
 import apiKeysRoutes from './routes/api-keys.routes.js';
+import billingRoutes from './routes/billing.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import { webSocketService } from './services/websocket.service.js';
 
 // Validate configuration on startup
 try {
@@ -26,6 +32,10 @@ try {
 }
 
 const app: Express = express();
+const httpServer = createServer(app);
+
+// Initialize WebSocket
+webSocketService.initializeSocket(httpServer);
 
 // ============================================
 // Security & Performance Middleware
@@ -48,6 +58,9 @@ app.use(cors({
 // Compression - Gzip responses
 app.use(compression());
 
+// Cookie parser (for CSRF)
+app.use(cookieParser());
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -65,6 +78,13 @@ const limiter = rateLimit({
 });
 
 app.use('/api/', limiter);
+
+// CSRF Protection
+app.use(csrfTokenGenerator); // Generate token for all requests
+app.use('/api/', csrfProtection); // Validate on API routes
+
+// CSRF token endpoint
+app.get('/api/csrf-token', csrfTokenEndpoint);
 
 // ============================================
 // Request Logging
@@ -117,6 +137,8 @@ app.use('/api/workspaces', authenticate, workspacesRoutes);
 app.use('/api/integrations', authenticate, integrationsRoutes);
 app.use('/api/schedules', authenticate, schedulesRoutes);
 app.use('/api/api-keys', authenticate, apiKeysRoutes);
+app.use('/api/billing', billingRoutes); // Has own auth + webhook handler
+app.use('/api/upload', authenticate, uploadRoutes);
 
 // Flows-specific runs endpoint (for nested routing)
 // Note: Nested routing is handled within flows.routes.ts or runs.routes.ts directly
@@ -133,13 +155,14 @@ app.use(errorHandler);
 // Start Server
 // ============================================
 
-app.listen(config.server.port, () => {
+httpServer.listen(config.server.port, () => {
   console.log('');
   console.log('🚀 ════════════════════════════════════════════════════════════');
   console.log('🤖 CrewAI Orchestrator Backend Server');
   console.log('🚀 ════════════════════════════════════════════════════════════');
   console.log('');
   console.log(`✨ Server running on: http://localhost:${config.server.port}`);
+  console.log(`🔌 WebSocket enabled: ws://localhost:${config.server.port}`);
   console.log(`🌍 Environment: ${config.server.env}`);
   console.log(`🔐 CORS Origins: ${config.security.corsOrigin.join(', ')}`);
   console.log(`⚡ Rate Limit: ${config.security.rateLimit.maxRequests} req/${config.security.rateLimit.windowMs}ms`);
@@ -176,6 +199,11 @@ app.listen(config.server.port, () => {
   console.log(`   GET  /api/runs/:id                  - Get run details`);
   console.log(`   GET  /api/runs/:id/events           - SSE stream (real-time)`);
   console.log('');
+  console.log('   🔌 WebSocket Events:');
+  console.log(`   - agentCreated, agentUpdated, agentDeleted`);
+  console.log(`   - taskCreated, taskUpdated, taskDeleted`);
+  console.log(`   - crewUpdated, runStarted, runUpdated, runCompleted, runFailed`);
+  console.log('');
   console.log('🚀 ════════════════════════════════════════════════════════════');
   console.log('');
 });
@@ -183,12 +211,21 @@ app.listen(config.server.port, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('👋 SIGTERM received, shutting down gracefully...');
-  process.exit(0);
+  webSocketService.close();
+  httpServer.close(() => {
+    console.log('🛑 HTTP server closed');
+    process.exit(0);
+  });
 });
 
 process.on('SIGINT', () => {
   console.log('👋 SIGINT received, shutting down gracefully...');
-  process.exit(0);
+  webSocketService.close();
+  httpServer.close(() => {
+    console.log('🛑 HTTP server closed');
+    process.exit(0);
+  });
 });
 
+export { webSocketService };
 export default app;

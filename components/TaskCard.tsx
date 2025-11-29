@@ -72,7 +72,36 @@ const TaskCard = memo<TaskCardProps>(({
         <div className="flex justify-center py-2">
           <div className="flex flex-col items-center">
             <div className="w-0.5 h-4 bg-gradient-to-b from-cyan-500/50 to-cyan-500/20"></div>
-            <ArrowRight size={14} className="text-cyan-500/50 rotate-90" />
+            <div 
+              className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 cursor-pointer group"
+              style={{ 
+                transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                willChange: 'transform'
+              }}
+              onMouseMove={(e) => {
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const deltaX = (e.clientX - centerX) / (rect.width / 2);
+                const deltaY = (e.clientY - centerY) / (rect.height / 2);
+                
+                const tiltX = deltaY * -12;
+                const tiltY = deltaX * 12;
+                const moveX = deltaX * 8;
+                const moveY = deltaY * 8;
+                
+                e.currentTarget.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateX(${moveX}px) translateY(${moveY - 6}px) scale(1.15)`;
+                e.currentTarget.style.boxShadow = `0 0 30px rgba(34, 197, 220, 0.6), 0 ${moveY + 15}px 25px rgba(0, 0, 0, 0.4)`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <ArrowRight size={14} className="text-cyan-500/50 rotate-90 group-hover:text-cyan-400 transition-colors duration-300 pointer-events-none" />
+            </div>
           </div>
         </div>
       )}
@@ -104,9 +133,35 @@ const TaskCard = memo<TaskCardProps>(({
             onClick={handleMoveUp}
             aria-label={`Move task ${index + 1} up`}
             disabled={index === 0}
-            className={`p-0.5 rounded text-slate-500 hover:text-cyan-400 transition-colors ${index === 0 ? 'opacity-30 pointer-events-none' : ''}`}
+            className={`p-1 rounded-lg bg-cyan-500/5 border border-transparent hover:border-cyan-500/20 text-slate-500 hover:text-cyan-400 transition-all duration-300 group ${index === 0 ? 'opacity-30 pointer-events-none' : ''}`}
+            style={{ 
+              transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              willChange: 'transform'
+            }}
+            onMouseMove={(e) => {
+              if (index === 0) return;
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              const deltaX = (e.clientX - centerX) / (rect.width / 2);
+              const deltaY = (e.clientY - centerY) / (rect.height / 2);
+              
+              const tiltX = deltaY * -10;
+              const tiltY = deltaX * 10;
+              const moveX = deltaX * 6;
+              const moveY = deltaY * 6;
+              
+              e.currentTarget.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateX(${moveX}px) translateY(${moveY - 4}px) scale(1.12)`;
+              e.currentTarget.style.boxShadow = `0 0 20px rgba(34, 197, 220, 0.5), 0 ${moveY + 10}px 20px rgba(0, 0, 0, 0.3)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
-            <ChevronUp size={20} aria-hidden="true" />
+            <ChevronUp size={20} aria-hidden="true" className="pointer-events-none group-hover:text-cyan-300 transition-colors duration-300" />
           </button>
           <div 
             className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-mono font-bold ${
@@ -122,9 +177,35 @@ const TaskCard = memo<TaskCardProps>(({
             onClick={handleMoveDown}
             aria-label={`Move task ${index + 1} down`}
             disabled={index === tasksLength - 1}
-            className={`p-0.5 rounded text-slate-500 hover:text-cyan-400 transition-colors ${index === tasksLength - 1 ? 'opacity-30 pointer-events-none' : ''}`}
+            className={`p-1 rounded-lg bg-cyan-500/5 border border-transparent hover:border-cyan-500/20 text-slate-500 hover:text-cyan-400 transition-all duration-300 group ${index === tasksLength - 1 ? 'opacity-30 pointer-events-none' : ''}`}
+            style={{ 
+              transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              willChange: 'transform'
+            }}
+            onMouseMove={(e) => {
+              if (index === tasksLength - 1) return;
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              const centerX = rect.left + rect.width / 2;
+              const centerY = rect.top + rect.height / 2;
+              const deltaX = (e.clientX - centerX) / (rect.width / 2);
+              const deltaY = (e.clientY - centerY) / (rect.height / 2);
+              
+              const tiltX = deltaY * -10;
+              const tiltY = deltaX * 10;
+              const moveX = deltaX * 6;
+              const moveY = deltaY * 6;
+              
+              e.currentTarget.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateX(${moveX}px) translateY(${moveY - 4}px) scale(1.12)`;
+              e.currentTarget.style.boxShadow = `0 0 20px rgba(34, 197, 220, 0.5), 0 ${moveY + 10}px 20px rgba(0, 0, 0, 0.3)`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateX(0px) translateY(0px) scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
           >
-            <ChevronDown size={20} aria-hidden="true" />
+            <ChevronDown size={20} aria-hidden="true" className="pointer-events-none group-hover:text-cyan-300 transition-colors duration-300" />
           </button>
         </div>
 
