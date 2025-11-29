@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { BarChart3, TrendingUp, Clock, Users, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
 
 interface AnalyticsData {
   overview: {
@@ -17,6 +18,21 @@ interface AnalyticsData {
 interface MonitoringProps {
   workspaceId: string;
 }
+
+// 3D Hover effect helper
+const apply3DHover = (e: React.MouseEvent<HTMLElement>, intensity: number = 5) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = (e.clientX - centerX) / (rect.width / 2);
+  const deltaY = (e.clientY - centerY) / (rect.height / 2);
+  
+  e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -intensity}deg) rotateY(${deltaX * intensity}deg) translateY(-4px) scale(1.02)`;
+};
+
+const reset3DHover = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+};
 
 export const Monitoring: React.FC<MonitoringProps> = ({ workspaceId }) => {
   const { hasPermission } = useAuth();
@@ -43,95 +59,152 @@ export const Monitoring: React.FC<MonitoringProps> = ({ workspaceId }) => {
   };
 
   if (!hasPermission('workspace:read')) {
-    return <div>You do not have permission to view analytics</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        You do not have permission to view analytics
+      </div>
+    );
   }
 
   if (isLoading) {
-    return <div className="loading">Loading analytics...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+      </div>
+    );
   }
 
   if (!analytics) {
-    return <div>No analytics data available</div>;
+    return (
+      <div className="flex items-center justify-center h-64 text-slate-400">
+        No analytics data available
+      </div>
+    );
   }
 
+  const metrics = [
+    { label: 'Total Runs', value: analytics.overview.totalRuns.toLocaleString(), icon: Activity, color: 'cyan' },
+    { label: 'Success Rate', value: `${analytics.overview.successRate.toFixed(1)}%`, icon: CheckCircle, color: 'emerald' },
+    { label: 'Avg Execution', value: `${analytics.overview.avgExecutionTime.toFixed(2)}s`, icon: Clock, color: 'purple' },
+    { label: 'Active Users', value: analytics.overview.activeUsers.toString(), icon: Users, color: 'yellow' },
+  ];
+
+  const maxCount = Math.max(...analytics.runsByDay.map((d) => d.count), 1);
+
   return (
-    <div className="monitoring">
-      <div className="header">
-        <h2>Analytics & Monitoring</h2>
-        <select value={timeRange} onChange={(e) => setTimeRange(e.target.value as any)}>
+    <div className="p-6 md:p-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <BarChart3 size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">Analytics & Monitoring</h1>
+            <p className="text-sm text-slate-400 font-mono">workspace.analytics.dashboard</p>
+          </div>
+        </div>
+        
+        <select 
+          value={timeRange} 
+          onChange={(e) => setTimeRange(e.target.value as '7d' | '30d' | '90d')}
+          className="px-4 py-2.5 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
+        >
           <option value="7d">Last 7 Days</option>
           <option value="30d">Last 30 Days</option>
           <option value="90d">Last 90 Days</option>
         </select>
       </div>
 
-      <div className="metrics-grid">
-        <div className="metric-card">
-          <div className="metric-value">{analytics.overview.totalRuns.toLocaleString()}</div>
-          <div className="metric-label">Total Runs</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{analytics.overview.successRate.toFixed(1)}%</div>
-          <div className="metric-label">Success Rate</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{analytics.overview.avgExecutionTime.toFixed(2)}s</div>
-          <div className="metric-label">Avg Execution Time</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{analytics.overview.activeUsers}</div>
-          <div className="metric-label">Active Users</div>
-        </div>
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {metrics.map((metric) => (
+          <div 
+            key={metric.label}
+            className="p-5 rounded-xl bg-gradient-to-br from-cyan-500/10 to-emerald-500/5 border border-cyan-500/20 backdrop-blur-sm"
+            style={{ 
+              transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+              transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+            }}
+            onMouseMove={(e) => apply3DHover(e)}
+            onMouseLeave={reset3DHover}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <metric.icon size={18} className="text-cyan-400" />
+              <span className="text-sm text-slate-400">{metric.label}</span>
+            </div>
+            <p className="text-3xl font-bold text-white">{metric.value}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="charts-section">
-        <div className="chart-card">
-          <h3>Runs Over Time</h3>
-          <div className="chart">
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Runs Over Time */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <TrendingUp size={18} className="text-cyan-400" />
+            Runs Over Time
+          </h3>
+          <div className="flex items-end gap-2 h-48">
             {analytics.runsByDay.map((day) => (
-              <div key={day.date} className="bar-group">
-                <div className="bars">
+              <div key={day.date} className="flex-1 flex flex-col items-center h-full">
+                <div className="flex gap-0.5 items-end flex-1 w-full">
                   <div
-                    className="bar success"
-                    style={{
-                      height: `${(day.success / Math.max(...analytics.runsByDay.map((d) => d.count))) * 100}%`,
-                    }}
+                    className="flex-1 bg-gradient-to-t from-emerald-500 to-cyan-400 rounded-t transition-all duration-300"
+                    style={{ height: `${(day.success / maxCount) * 100}%`, minHeight: day.success > 0 ? '4px' : '0' }}
                     title={`Success: ${day.success}`}
                   />
                   <div
-                    className="bar failed"
-                    style={{
-                      height: `${(day.failed / Math.max(...analytics.runsByDay.map((d) => d.count))) * 100}%`,
-                    }}
+                    className="flex-1 bg-gradient-to-t from-red-500 to-pink-500 rounded-t transition-all duration-300"
+                    style={{ height: `${(day.failed / maxCount) * 100}%`, minHeight: day.failed > 0 ? '4px' : '0' }}
                     title={`Failed: ${day.failed}`}
                   />
                 </div>
-                <div className="bar-label">{new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
+                <p className="text-[10px] text-slate-500 mt-2 text-center">
+                  {new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-center gap-6 mt-4">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-emerald-500 to-cyan-400" />
+              <span className="text-xs text-slate-400">Success</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-gradient-to-t from-red-500 to-pink-500" />
+              <span className="text-xs text-slate-400">Failed</span>
+            </div>
+          </div>
         </div>
 
-        <div className="chart-card">
-          <h3>Top Performing Agents</h3>
-          <div className="table">
-            <table>
+        {/* Top Agents */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-6">Top Performing Agents</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Agent</th>
-                  <th>Runs</th>
-                  <th>Success Rate</th>
+                <tr className="border-b border-cyan-500/10">
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Agent</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Runs</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Success Rate</th>
                 </tr>
               </thead>
               <tbody>
                 {analytics.topAgents.map((agent) => (
-                  <tr key={agent.name}>
-                    <td>{agent.name}</td>
-                    <td>{agent.runs}</td>
-                    <td>
-                      <div className="progress-bar">
-                        <div className="progress-fill" style={{ width: `${agent.successRate}%` }} />
-                        <span>{agent.successRate.toFixed(1)}%</span>
+                  <tr key={agent.name} className="border-b border-cyan-500/5">
+                    <td className="py-3 text-sm text-white">{agent.name}</td>
+                    <td className="py-3 text-sm text-slate-300">{agent.runs}</td>
+                    <td className="py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-slate-700/50 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full"
+                            style={{ width: `${agent.successRate}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-slate-400 w-12">{agent.successRate.toFixed(1)}%</span>
                       </div>
                     </td>
                   </tr>
@@ -142,26 +215,31 @@ export const Monitoring: React.FC<MonitoringProps> = ({ workspaceId }) => {
         </div>
       </div>
 
-      <div className="charts-section">
-        <div className="chart-card">
-          <h3>Performance Metrics</h3>
-          <div className="table">
-            <table>
+      {/* Second Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Performance Metrics */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <Clock size={18} className="text-purple-400" />
+            Performance Metrics
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Workflow</th>
-                  <th>Avg Time</th>
-                  <th>Min</th>
-                  <th>Max</th>
+                <tr className="border-b border-cyan-500/10">
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Workflow</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Avg</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Min</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Max</th>
                 </tr>
               </thead>
               <tbody>
                 {analytics.performance.map((perf) => (
-                  <tr key={perf.name}>
-                    <td>{perf.name}</td>
-                    <td>{perf.avgTime.toFixed(2)}s</td>
-                    <td>{perf.minTime.toFixed(2)}s</td>
-                    <td>{perf.maxTime.toFixed(2)}s</td>
+                  <tr key={perf.name} className="border-b border-cyan-500/5">
+                    <td className="py-3 text-sm text-white">{perf.name}</td>
+                    <td className="py-3 text-sm text-cyan-400 font-mono">{perf.avgTime.toFixed(2)}s</td>
+                    <td className="py-3 text-sm text-emerald-400 font-mono">{perf.minTime.toFixed(2)}s</td>
+                    <td className="py-3 text-sm text-orange-400 font-mono">{perf.maxTime.toFixed(2)}s</td>
                   </tr>
                 ))}
               </tbody>
@@ -169,23 +247,27 @@ export const Monitoring: React.FC<MonitoringProps> = ({ workspaceId }) => {
           </div>
         </div>
 
-        <div className="chart-card">
-          <h3>Recent Errors</h3>
-          <div className="table">
-            <table>
+        {/* Recent Errors */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <AlertTriangle size={18} className="text-red-400" />
+            Recent Errors
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Error</th>
-                  <th>Count</th>
-                  <th>Last Occurred</th>
+                <tr className="border-b border-cyan-500/10">
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Error</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Count</th>
+                  <th className="text-left py-3 text-sm font-medium text-slate-400">Last</th>
                 </tr>
               </thead>
               <tbody>
                 {analytics.errors.map((error, idx) => (
-                  <tr key={idx}>
-                    <td className="error-message">{error.message}</td>
-                    <td>{error.count}</td>
-                    <td>{new Date(error.lastOccurred).toLocaleString()}</td>
+                  <tr key={idx} className="border-b border-cyan-500/5">
+                    <td className="py-3 text-sm text-red-400 font-mono max-w-[200px] truncate">{error.message}</td>
+                    <td className="py-3 text-sm text-slate-300">{error.count}</td>
+                    <td className="py-3 text-sm text-slate-400">{new Date(error.lastOccurred).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -193,168 +275,6 @@ export const Monitoring: React.FC<MonitoringProps> = ({ workspaceId }) => {
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .monitoring {
-          padding: 20px;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
-        .header select {
-          padding: 10px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-        }
-
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 30px;
-        }
-
-        .metric-card {
-          background: linear-gradient(135deg, rgba(0, 255, 159, 0.1), rgba(0, 212, 255, 0.1));
-          padding: 20px;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .metric-value {
-          font-size: 32px;
-          font-weight: bold;
-          color: #00ff9f;
-          margin-bottom: 8px;
-        }
-
-        .metric-label {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 14px;
-        }
-
-        .charts-section {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-          gap: 20px;
-          margin-bottom: 30px;
-        }
-
-        .chart-card {
-          background: rgba(255, 255, 255, 0.05);
-          padding: 20px;
-          border-radius: 8px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .chart {
-          display: flex;
-          align-items: flex-end;
-          gap: 8px;
-          height: 200px;
-          margin-top: 20px;
-        }
-
-        .bar-group {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          height: 100%;
-        }
-
-        .bars {
-          display: flex;
-          gap: 2px;
-          align-items: flex-end;
-          flex: 1;
-          width: 100%;
-        }
-
-        .bar {
-          flex: 1;
-          min-height: 2px;
-          border-radius: 4px 4px 0 0;
-        }
-
-        .bar.success {
-          background: linear-gradient(to top, #00ff9f, #00d4ff);
-        }
-
-        .bar.failed {
-          background: linear-gradient(to top, #ff0080, #ff4444);
-        }
-
-        .bar-label {
-          font-size: 10px;
-          color: rgba(255, 255, 255, 0.6);
-          margin-top: 8px;
-          text-align: center;
-        }
-
-        .table {
-          margin-top: 20px;
-          overflow-x: auto;
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        th,
-        td {
-          padding: 12px;
-          text-align: left;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        th {
-          color: rgba(255, 255, 255, 0.7);
-          font-weight: 600;
-        }
-
-        .progress-bar {
-          position: relative;
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-          height: 20px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          position: absolute;
-          left: 0;
-          top: 0;
-          height: 100%;
-          background: linear-gradient(90deg, #00ff9f, #00d4ff);
-          border-radius: 10px;
-        }
-
-        .progress-bar span {
-          position: relative;
-          display: block;
-          text-align: center;
-          line-height: 20px;
-          font-size: 12px;
-          font-weight: bold;
-          color: white;
-          text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
-        }
-
-        .error-message {
-          color: #ff4444;
-          font-family: monospace;
-          font-size: 12px;
-        }
-      `}</style>
     </div>
   );
 };

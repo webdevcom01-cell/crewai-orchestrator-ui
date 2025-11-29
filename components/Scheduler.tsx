@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { Clock, Plus, Play, Trash2, X, Timer, Webhook, Calendar, RefreshCw, CheckCircle } from 'lucide-react';
 
 interface Schedule {
   id: string;
@@ -23,6 +24,21 @@ interface SchedulerProps {
   workspaceId: string;
 }
 
+// 3D Hover effect helper
+const apply3DHover = (e: React.MouseEvent<HTMLElement>, intensity: number = 5) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = (e.clientX - centerX) / (rect.width / 2);
+  const deltaY = (e.clientY - centerY) / (rect.height / 2);
+  
+  e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -intensity}deg) rotateY(${deltaX * intensity}deg) translateY(-4px) scale(1.02)`;
+};
+
+const reset3DHover = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+};
+
 export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
   const { hasPermission } = useAuth();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -40,9 +56,9 @@ export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
   const cronPresets = [
     { label: 'Every minute', value: '* * * * *' },
     { label: 'Every hour', value: '0 * * * *' },
-    { label: 'Every day at midnight', value: '0 0 * * *' },
-    { label: 'Every Monday at 9am', value: '0 9 * * 1' },
-    { label: 'Every 1st of month', value: '0 0 1 * *' },
+    { label: 'Daily at midnight', value: '0 0 * * *' },
+    { label: 'Monday 9am', value: '0 9 * * 1' },
+    { label: '1st of month', value: '0 0 1 * *' },
   ];
 
   useEffect(() => {
@@ -79,7 +95,7 @@ export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
     }
 
     try {
-      const config: any = {};
+      const config: Record<string, unknown> = {};
       if (newSchedule.type === 'cron') {
         config.cron = newSchedule.cron;
       } else if (newSchedule.type === 'interval') {
@@ -177,48 +193,77 @@ export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
 
   const getTypeIcon = (type: Schedule['type']) => {
     switch (type) {
-      case 'cron':
-        return '⏰';
-      case 'interval':
-        return '🔄';
-      case 'webhook':
-        return '🔗';
+      case 'cron': return <Calendar size={18} className="text-cyan-400" />;
+      case 'interval': return <Timer size={18} className="text-emerald-400" />;
+      case 'webhook': return <Webhook size={18} className="text-purple-400" />;
     }
   };
 
   return (
-    <div className="scheduler">
-      <div className="header">
-        <h2>Workflow Scheduler</h2>
+    <div className="p-6 md:p-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <Clock size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">Workflow Scheduler</h1>
+            <p className="text-sm text-slate-400 font-mono">automation.schedules.config</p>
+          </div>
+        </div>
+        
         {hasPermission('settings:manage') && (
-          <button onClick={() => setShowAddForm(true)} className="btn-add">
-            + Add Schedule
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all hover:scale-105"
+          >
+            <Plus size={18} />
+            Add Schedule
           </button>
         )}
       </div>
 
+      {/* Add Schedule Modal */}
       {showAddForm && (
-        <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Create New Schedule</h3>
-            <form onSubmit={addSchedule}>
-              <label>
-                Schedule Name
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddForm(false)}
+        >
+          <div 
+            className="bg-[#0c1621] border border-cyan-500/20 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-cyan-500/10">
+              <h2 className="text-xl font-bold text-white">Create New Schedule</h2>
+              <button 
+                onClick={() => setShowAddForm(false)}
+                className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            
+            <form onSubmit={addSchedule} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Schedule Name</label>
                 <input
                   type="text"
                   value={newSchedule.name}
                   onChange={(e) => setNewSchedule({ ...newSchedule, name: e.target.value })}
                   placeholder="Daily Report Generation"
                   required
+                  className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                 />
-              </label>
+              </div>
 
-              <label>
-                Workflow
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Workflow</label>
                 <select
                   value={newSchedule.workflowId}
                   onChange={(e) => setNewSchedule({ ...newSchedule, workflowId: e.target.value })}
                   required
+                  className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                 >
                   <option value="">Select workflow...</option>
                   {workflows.map((workflow) => (
@@ -227,88 +272,102 @@ export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
 
-              <label>
-                Trigger Type
-                <select
-                  value={newSchedule.type}
-                  onChange={(e) => setNewSchedule({ ...newSchedule, type: e.target.value as Schedule['type'] })}
-                >
-                  <option value="cron">Cron Schedule</option>
-                  <option value="interval">Fixed Interval</option>
-                  <option value="webhook">Webhook Trigger</option>
-                </select>
-              </label>
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Trigger Type</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['cron', 'interval', 'webhook'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewSchedule({ ...newSchedule, type })}
+                      className={`p-3 rounded-lg border text-center capitalize transition-all ${
+                        newSchedule.type === type
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
+                          : 'bg-[#080F1A] border-cyan-500/10 text-slate-400 hover:border-cyan-500/30'
+                      }`}
+                    >
+                      {type === 'cron' && <Calendar size={20} className="mx-auto mb-1" />}
+                      {type === 'interval' && <Timer size={20} className="mx-auto mb-1" />}
+                      {type === 'webhook' && <Webhook size={20} className="mx-auto mb-1" />}
+                      <span className="text-sm">{type}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {newSchedule.type === 'cron' && (
-                <>
-                  <label>
-                    Cron Expression
-                    <input
-                      type="text"
-                      value={newSchedule.cron}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, cron: e.target.value })}
-                      placeholder="0 0 * * *"
-                      required
-                    />
-                  </label>
-                  <div className="cron-presets">
-                    <span>Presets:</span>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Cron Expression</label>
+                  <input
+                    type="text"
+                    value={newSchedule.cron}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, cron: e.target.value })}
+                    placeholder="0 0 * * *"
+                    required
+                    className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {cronPresets.map((preset) => (
                       <button
                         key={preset.value}
                         type="button"
                         onClick={() => setNewSchedule({ ...newSchedule, cron: preset.value })}
-                        className="preset-btn"
+                        className="px-3 py-1.5 text-xs rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 hover:bg-cyan-500/20 transition-colors"
                       >
                         {preset.label}
                       </button>
                     ))}
                   </div>
-                </>
+                </div>
               )}
 
               {newSchedule.type === 'interval' && (
-                <label>
-                  Interval (seconds)
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Interval (seconds)</label>
                   <input
                     type="number"
                     value={newSchedule.interval}
                     onChange={(e) => setNewSchedule({ ...newSchedule, interval: parseInt(e.target.value) })}
                     min="60"
                     required
+                    className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                   />
-                  <div className="interval-hint">
+                  <p className="mt-2 text-sm text-slate-500">
                     {newSchedule.interval < 3600
                       ? `Every ${Math.floor(newSchedule.interval / 60)} minutes`
                       : `Every ${Math.floor(newSchedule.interval / 3600)} hours`}
-                  </div>
-                </label>
+                  </p>
+                </div>
               )}
 
               {newSchedule.type === 'webhook' && (
-                <>
-                  <label>
-                    Webhook Secret (optional)
-                    <input
-                      type="text"
-                      value={newSchedule.webhookSecret}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, webhookSecret: e.target.value })}
-                      placeholder="Leave empty for auto-generated"
-                    />
-                  </label>
-                  <div className="webhook-info">
-                    Webhook URL will be generated after creation
-                  </div>
-                </>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Webhook Secret (optional)</label>
+                  <input
+                    type="text"
+                    value={newSchedule.webhookSecret}
+                    onChange={(e) => setNewSchedule({ ...newSchedule, webhookSecret: e.target.value })}
+                    placeholder="Leave empty for auto-generated"
+                    className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                  />
+                  <p className="mt-2 text-sm text-slate-500">Webhook URL will be generated after creation</p>
+                </div>
               )}
 
-              <div className="form-actions">
-                <button type="button" onClick={() => setShowAddForm(false)} className="btn-cancel">
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 py-3 rounded-lg bg-slate-700/50 text-slate-300 font-medium hover:bg-slate-700 transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-submit">
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all"
+                >
                   Create Schedule
                 </button>
               </div>
@@ -317,355 +376,111 @@ export const Scheduler: React.FC<SchedulerProps> = ({ workspaceId }) => {
         </div>
       )}
 
-      <div className="schedules-list">
-        {schedules.length === 0 ? (
-          <div className="empty-state">
-            <p>No schedules configured</p>
-            <p className="hint">Create schedules to automate your workflows</p>
-          </div>
-        ) : (
-          schedules.map((schedule) => (
-            <div key={schedule.id} className={`schedule-card ${!schedule.enabled ? 'disabled' : ''}`}>
-              <div className="schedule-header">
-                <div className="schedule-icon">{getTypeIcon(schedule.type)}</div>
-                <div className="schedule-info">
-                  <h3>{schedule.name}</h3>
-                  <span className="workflow-name">{schedule.workflowName}</span>
+      {/* Schedules Grid */}
+      {schedules.length === 0 ? (
+        <div className="text-center py-16">
+          <RefreshCw size={48} className="mx-auto text-slate-600 mb-4" />
+          <p className="text-slate-400 mb-2">No schedules configured</p>
+          <p className="text-sm text-slate-500">Create schedules to automate your workflows</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {schedules.map((schedule) => (
+            <div 
+              key={schedule.id}
+              className={`p-5 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
+                schedule.enabled 
+                  ? 'bg-[#080F1A]/60 border-cyan-500/20' 
+                  : 'bg-[#080F1A]/30 border-slate-700/50 opacity-60'
+              }`}
+              style={{ 
+                transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              }}
+              onMouseMove={(e) => apply3DHover(e)}
+              onMouseLeave={reset3DHover}
+            >
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                    {getTypeIcon(schedule.type)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">{schedule.name}</h3>
+                    <p className="text-sm text-slate-400">{schedule.workflowName}</p>
+                  </div>
                 </div>
-                <label className="toggle">
+                
+                {/* Toggle Switch */}
+                <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
                     checked={schedule.enabled}
                     onChange={(e) => toggleSchedule(schedule.id, e.target.checked)}
                     disabled={!hasPermission('settings:manage')}
+                    className="sr-only peer"
                   />
-                  <span className="toggle-slider"></span>
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                 </label>
               </div>
 
-              <div className="schedule-details">
-                <div className="detail-row">
-                  <span className="label">Type:</span>
-                  <span className="value">{schedule.type}</span>
+              <div className="space-y-2 mb-4 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Type:</span>
+                  <span className="text-slate-300 capitalize">{schedule.type}</span>
                 </div>
                 {schedule.config.cron && (
-                  <div className="detail-row">
-                    <span className="label">Cron:</span>
-                    <code>{schedule.config.cron}</code>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Cron:</span>
+                    <code className="px-2 py-0.5 rounded bg-slate-800 text-cyan-400 text-xs">{schedule.config.cron}</code>
                   </div>
                 )}
                 {schedule.config.interval && (
-                  <div className="detail-row">
-                    <span className="label">Interval:</span>
-                    <span className="value">Every {schedule.config.interval / 60} minutes</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Interval:</span>
+                    <span className="text-slate-300">Every {schedule.config.interval / 60} min</span>
                   </div>
                 )}
-                {schedule.config.webhookUrl && (
-                  <div className="detail-row">
-                    <span className="label">Webhook:</span>
-                    <code className="webhook-url">{schedule.config.webhookUrl}</code>
-                  </div>
-                )}
-                <div className="detail-row">
-                  <span className="label">Runs:</span>
-                  <span className="value">{schedule.runCount}</span>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Total Runs:</span>
+                  <span className="text-slate-300">{schedule.runCount}</span>
                 </div>
                 {schedule.lastRun && (
-                  <div className="detail-row">
-                    <span className="label">Last Run:</span>
-                    <span className="value">{new Date(schedule.lastRun).toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Last Run:</span>
+                    <span className="text-slate-300">{new Date(schedule.lastRun).toLocaleString()}</span>
                   </div>
                 )}
                 {schedule.nextRun && (
-                  <div className="detail-row">
-                    <span className="label">Next Run:</span>
-                    <span className="value next-run">{new Date(schedule.nextRun).toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Next Run:</span>
+                    <span className="text-emerald-400 font-medium">{new Date(schedule.nextRun).toLocaleString()}</span>
                   </div>
                 )}
               </div>
 
               {hasPermission('settings:manage') && (
-                <div className="schedule-actions">
-                  <button onClick={() => runNow(schedule.id)} className="btn-run">
+                <div className="flex gap-3 pt-4 border-t border-cyan-500/10">
+                  <button 
+                    onClick={() => runNow(schedule.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <Play size={14} />
                     Run Now
                   </button>
-                  <button onClick={() => deleteSchedule(schedule.id)} className="btn-delete">
+                  <button 
+                    onClick={() => deleteSchedule(schedule.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors"
+                  >
+                    <Trash2 size={14} />
                     Delete
                   </button>
                 </div>
               )}
             </div>
-          ))
-        )}
-      </div>
-
-      <style jsx>{`
-        .scheduler {
-          padding: 20px;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
-        .btn-add {
-          background: #00ff9f;
-          color: #000;
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: #1a1a1a;
-          padding: 30px;
-          border-radius: 12px;
-          max-width: 500px;
-          width: 90%;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .modal label {
-          display: block;
-          margin-bottom: 15px;
-          font-weight: 600;
-        }
-
-        .modal input,
-        .modal select {
-          display: block;
-          width: 100%;
-          padding: 10px;
-          margin-top: 5px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-        }
-
-        .cron-presets {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin-top: 10px;
-          font-size: 12px;
-        }
-
-        .preset-btn {
-          background: rgba(0, 212, 255, 0.2);
-          color: #00d4ff;
-          padding: 4px 8px;
-          border: 1px solid rgba(0, 212, 255, 0.3);
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 11px;
-        }
-
-        .interval-hint,
-        .webhook-info {
-          margin-top: 8px;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 13px;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 20px;
-        }
-
-        .btn-cancel {
-          flex: 1;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .btn-submit {
-          flex: 1;
-          background: #00ff9f;
-          color: #000;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .schedules-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-          gap: 20px;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        .schedule-card {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 20px;
-        }
-
-        .schedule-card.disabled {
-          opacity: 0.5;
-        }
-
-        .schedule-header {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
-        }
-
-        .schedule-icon {
-          font-size: 32px;
-        }
-
-        .schedule-info {
-          flex: 1;
-        }
-
-        .schedule-info h3 {
-          margin: 0 0 5px 0;
-        }
-
-        .workflow-name {
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 14px;
-        }
-
-        .toggle {
-          position: relative;
-          display: inline-block;
-          width: 50px;
-          height: 24px;
-        }
-
-        .toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .toggle-slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(255, 255, 255, 0.2);
-          transition: 0.3s;
-          border-radius: 24px;
-        }
-
-        .toggle-slider:before {
-          position: absolute;
-          content: '';
-          height: 18px;
-          width: 18px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          transition: 0.3s;
-          border-radius: 50%;
-        }
-
-        .toggle input:checked + .toggle-slider {
-          background-color: #00ff9f;
-        }
-
-        .toggle input:checked + .toggle-slider:before {
-          transform: translateX(26px);
-        }
-
-        .schedule-details {
-          margin-bottom: 15px;
-        }
-
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-
-        .detail-row .label {
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .detail-row code {
-          background: rgba(0, 0, 0, 0.3);
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-size: 12px;
-        }
-
-        .webhook-url {
-          max-width: 200px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .next-run {
-          color: #00ff9f;
-          font-weight: bold;
-        }
-
-        .schedule-actions {
-          display: flex;
-          gap: 10px;
-          padding-top: 15px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-run {
-          background: #00d4ff;
-          color: #000;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .btn-delete {
-          background: #ff4444;
-          color: white;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-      `}</style>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

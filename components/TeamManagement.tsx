@@ -205,6 +205,9 @@ export const TeamManagement: React.FC<TeamManagementProps> = ({ workspaceId }) =
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+            <Users size={24} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" strokeWidth={1.5} />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Team Management</h1>
             <p className="text-sm text-slate-400 font-mono">workspace.members</p>

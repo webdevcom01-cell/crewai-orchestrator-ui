@@ -390,24 +390,26 @@ const AuditLog: React.FC = () => {
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
-              <FileText className="text-cyan-400" />
-              Audit Log
-            </h1>
-            <p className="text-slate-400 mt-1">Track all actions and changes in your workspace.</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+              <FileText size={24} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Audit Log</h1>
+              <p className="text-sm text-slate-400 font-mono">workspace.audit</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => window.location.reload()}
-              className="p-2 text-slate-400 hover:text-white border border-slate-500/30 hover:border-cyan-500/30 rounded-lg transition-all"
+              className="p-2.5 text-slate-400 hover:text-white border border-cyan-500/20 hover:border-cyan-500/30 rounded-lg transition-all hover:bg-cyan-500/10"
               title="Refresh"
             >
               <RefreshCw size={18} />
             </button>
             <button
               onClick={handleExport}
-              className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded-lg transition-all font-medium text-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded-lg transition-all font-medium text-sm hover:shadow-[0_0_20px_rgba(34,197,220,0.2)]"
             >
               <Download size={16} />
               Export CSV
@@ -417,22 +419,40 @@ const AuditLog: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Total Entries</p>
-            <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Today</p>
-            <p className="text-2xl font-bold text-cyan-400 mt-1">{stats.today}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Errors</p>
-            <p className="text-2xl font-bold text-red-400 mt-1">{stats.errors}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
-            <p className="text-xs text-slate-500 uppercase tracking-wider">Warnings</p>
-            <p className="text-2xl font-bold text-amber-400 mt-1">{stats.warnings}</p>
-          </div>
+          {[
+            { label: 'Total Entries', value: stats.total, color: 'text-white' },
+            { label: 'Today', value: stats.today, color: 'text-cyan-400' },
+            { label: 'Errors', value: stats.errors, color: 'text-red-400' },
+            { label: 'Warnings', value: stats.warnings, color: 'text-amber-400' },
+          ].map((stat, i) => (
+            <div 
+              key={i}
+              className="p-4 rounded-xl bg-[#080F1A]/60 backdrop-blur-sm border border-cyan-500/10 hover:border-cyan-500/30 cursor-default"
+              style={{ 
+                transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                willChange: 'transform'
+              }}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const deltaX = (e.clientX - centerX) / (rect.width / 2);
+                const deltaY = (e.clientY - centerY) / (rect.height / 2);
+                const tiltX = deltaY * -8;
+                const tiltY = deltaX * 8;
+                e.currentTarget.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px) scale(1.02)`;
+                e.currentTarget.style.boxShadow = '0 20px 40px rgba(34, 197, 220, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <p className="text-xs font-mono text-slate-500 uppercase tracking-wider">{stat.label}</p>
+              <p className={`text-2xl font-bold mt-1 ${stat.color}`}>{stat.value}</p>
+            </div>
+          ))}
         </div>
 
         {/* Filters */}

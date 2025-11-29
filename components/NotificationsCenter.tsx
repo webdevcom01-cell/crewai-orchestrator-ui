@@ -9,16 +9,14 @@ import {
   Info,
   AlertCircle,
   Settings,
-  Filter,
   Trash2,
   Clock,
   Users,
   Zap,
-  MessageSquare,
-  GitBranch,
   Archive,
   VolumeX,
-  Volume2
+  Volume2,
+  Filter
 } from 'lucide-react';
 
 interface Notification {
@@ -36,6 +34,30 @@ interface Notification {
     avatar: string;
   };
 }
+
+// 3D Card hover effect - reusable
+const use3DCardEffect = () => ({
+  style: { 
+    transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+    transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+    willChange: 'transform'
+  } as React.CSSProperties,
+  onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const deltaX = (e.clientX - centerX) / (rect.width / 2);
+    const deltaY = (e.clientY - centerY) / (rect.height / 2);
+    const tiltX = deltaY * -5;
+    const tiltY = deltaX * 5;
+    e.currentTarget.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px) scale(1.02)`;
+    e.currentTarget.style.boxShadow = '0 20px 40px rgba(34, 197, 220, 0.15)';
+  },
+  onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+    e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+    e.currentTarget.style.boxShadow = 'none';
+  }
+});
 
 const NotificationsCenter: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -58,10 +80,7 @@ const NotificationsCenter: React.FC = () => {
       message: 'Ana Petrovic has joined your workspace as Editor',
       timestamp: '15 min ago',
       read: false,
-      actor: {
-        name: 'Ana Petrovic',
-        avatar: 'AP'
-      }
+      actor: { name: 'Ana Petrovic', avatar: 'AP' }
     },
     {
       id: '3',
@@ -104,10 +123,7 @@ const NotificationsCenter: React.FC = () => {
       message: 'Marko left a comment on Marketing Agent: "Great configuration!"',
       timestamp: '1 day ago',
       read: true,
-      actor: {
-        name: 'Marko Jovanovic',
-        avatar: 'MJ'
-      }
+      actor: { name: 'Marko Jovanovic', avatar: 'MJ' }
     },
     {
       id: '7',
@@ -143,16 +159,19 @@ const NotificationsCenter: React.FC = () => {
     marketingEmails: false
   });
 
+  const cardEffect = use3DCardEffect();
+
   const getTypeIcon = (type: Notification['type']) => {
+    const iconClass = "w-5 h-5";
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-400" />;
+        return <CheckCircle className={`${iconClass} text-emerald-400`} />;
       case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-400" />;
+        return <AlertCircle className={`${iconClass} text-red-400`} />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-400" />;
+        return <AlertTriangle className={`${iconClass} text-amber-400`} />;
       case 'info':
-        return <Info className="w-5 h-5 text-cyan-400" />;
+        return <Info className={`${iconClass} text-cyan-400`} />;
     }
   };
 
@@ -169,6 +188,15 @@ const NotificationsCenter: React.FC = () => {
     }
   };
 
+  const getTypeBgClass = (type: Notification['type']) => {
+    switch (type) {
+      case 'success': return 'bg-emerald-500/10 border-emerald-500/20';
+      case 'error': return 'bg-red-500/10 border-red-500/20';
+      case 'warning': return 'bg-amber-500/10 border-amber-500/20';
+      case 'info': return 'bg-cyan-500/10 border-cyan-500/20';
+    }
+  };
+
   const filteredNotifications = notifications.filter(n => {
     if (filter === 'all') return true;
     if (filter === 'unread') return !n.read;
@@ -178,9 +206,7 @@ const NotificationsCenter: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const markAllAsRead = () => {
@@ -195,92 +221,86 @@ const NotificationsCenter: React.FC = () => {
     setNotifications(prev => prev.filter(n => !n.read));
   };
 
-  const hoverEffect = {
-    onMouseMove: (e: React.MouseEvent<HTMLDivElement>) => {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const deltaX = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-      const deltaY = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-      e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -5}deg) rotateY(${deltaX * 5}deg) translateY(-4px) scale(1.02)`;
-      e.currentTarget.style.boxShadow = '0 0 30px rgba(34, 197, 220, 0.3)';
-    },
-    onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
-      e.currentTarget.style.transform = '';
-      e.currentTarget.style.boxShadow = '';
-    }
-  };
-
   return (
-    <div className="min-h-screen p-8" style={{ backgroundColor: '#080F1A' }}>
+    <div className="h-full overflow-y-auto p-6 md:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex items-center gap-4">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
           <div className="relative">
-            <Bell className="w-10 h-10 text-cyan-400" />
+            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+              <Bell size={24} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" strokeWidth={1.5} />
+            </div>
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold animate-pulse">
                 {unreadCount}
               </span>
             )}
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">Notifications</h1>
-            <p className="text-gray-400">
-              {unreadCount > 0 ? `${unreadCount} unread notifications` : 'All caught up!'}
-            </p>
+            <h1 className="text-2xl font-bold text-white">Notifications</h1>
+            <p className="text-sm text-slate-400 font-mono">workspace.notifications</p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={markAllAsRead}
-            className="px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-all duration-200 flex items-center gap-2"
-            disabled={unreadCount === 0}
-          >
-            <CheckCheck className="w-4 h-4" />
-            Mark All Read
-          </button>
-          <button
-            onClick={clearAllRead}
-            className="px-4 py-2 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700 transition-all duration-200 flex items-center gap-2"
-          >
-            <Archive className="w-4 h-4" />
-            Clear Read
-          </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 bg-gray-700/50 text-gray-300 rounded-lg hover:bg-gray-700 transition-all duration-200"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-        </div>
+        <p className="text-slate-500 mt-2">
+          {unreadCount > 0 ? `${unreadCount} unread notifications` : 'All caught up!'}
+        </p>
       </div>
 
-      <div className="flex gap-8">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <button
+          onClick={markAllAsRead}
+          disabled={unreadCount === 0}
+          className="flex items-center gap-2 px-4 py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded-lg transition-all duration-200 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-[0_0_20px_rgba(34,197,220,0.2)]"
+        >
+          <CheckCheck size={16} />
+          Mark All Read
+        </button>
+        <button
+          onClick={clearAllRead}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#080F1A] hover:bg-slate-800 text-slate-400 border border-cyan-500/20 rounded-lg transition-all duration-200 text-sm"
+        >
+          <Archive size={16} />
+          Clear Read
+        </button>
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className={`p-2.5 rounded-lg border transition-all duration-200 ${
+            showSettings 
+              ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400' 
+              : 'bg-[#080F1A] border-cyan-500/20 text-slate-400 hover:text-white'
+          }`}
+        >
+          <Settings size={18} />
+        </button>
+      </div>
+
+      <div className="flex gap-6 flex-col lg:flex-row">
         {/* Main Content */}
         <div className="flex-1">
           {/* Filter Tabs */}
-          <div className="flex items-center gap-2 mb-6 bg-gray-800/30 p-2 rounded-xl border border-gray-700/50">
+          <div className="flex items-center gap-2 mb-6 bg-[#080F1A]/60 backdrop-blur-sm p-2 rounded-xl border border-cyan-500/10 overflow-x-auto">
             {[
               { key: 'all', label: 'All', icon: Bell },
               { key: 'unread', label: 'Unread', icon: Clock },
               { key: 'execution', label: 'Execution', icon: Zap },
-              { key: 'collaboration', label: 'Collaboration', icon: Users },
+              { key: 'collaboration', label: 'Team', icon: Users },
               { key: 'system', label: 'System', icon: Settings },
               { key: 'alert', label: 'Alerts', icon: AlertTriangle }
             ].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setFilter(tab.key as typeof filter)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap text-sm ${
                   filter === tab.key
-                    ? 'bg-cyan-500 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                    : 'text-slate-500 hover:text-white hover:bg-cyan-500/10'
                 }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
                 {tab.key === 'unread' && unreadCount > 0 && (
-                  <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">
+                  <span className="px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">
                     {unreadCount}
                   </span>
                 )}
@@ -291,10 +311,10 @@ const NotificationsCenter: React.FC = () => {
           {/* Notifications List */}
           <div className="space-y-3">
             {filteredNotifications.length === 0 ? (
-              <div className="text-center py-16 bg-gray-800/20 rounded-xl border border-gray-700/30">
-                <Bell className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">No notifications to show</p>
-                <p className="text-gray-500 text-sm mt-2">
+              <div className="text-center py-16 bg-[#080F1A]/60 backdrop-blur-sm rounded-xl border border-cyan-500/10">
+                <Bell className="w-16 h-16 text-slate-700 mx-auto mb-4" />
+                <p className="text-slate-400 text-lg">No notifications to show</p>
+                <p className="text-slate-600 text-sm mt-2">
                   {filter === 'unread' ? "You're all caught up!" : 'Check back later for updates'}
                 </p>
               </div>
@@ -302,50 +322,44 @@ const NotificationsCenter: React.FC = () => {
               filteredNotifications.map(notification => (
                 <div
                   key={notification.id}
-                  className={`p-4 rounded-xl border transition-all duration-300 cursor-pointer ${
+                  className={`p-4 rounded-xl border backdrop-blur-sm transition-all duration-300 cursor-pointer ${
                     notification.read
-                      ? 'bg-gray-800/20 border-gray-700/30'
-                      : 'bg-gray-800/40 border-cyan-500/30'
+                      ? 'bg-[#080F1A]/40 border-cyan-500/10'
+                      : 'bg-[#080F1A]/70 border-cyan-500/30'
                   }`}
-                  style={{ transformStyle: 'preserve-3d' }}
                   onClick={() => markAsRead(notification.id)}
-                  {...hoverEffect}
+                  {...cardEffect}
                 >
                   <div className="flex items-start gap-4">
                     {/* Icon */}
-                    <div className={`p-2 rounded-lg ${
-                      notification.type === 'success' ? 'bg-green-500/20' :
-                      notification.type === 'error' ? 'bg-red-500/20' :
-                      notification.type === 'warning' ? 'bg-yellow-500/20' :
-                      'bg-cyan-500/20'
-                    }`}>
+                    <div className={`p-2.5 rounded-lg border ${getTypeBgClass(notification.type)}`}>
                       {getTypeIcon(notification.type)}
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-semibold ${notification.read ? 'text-gray-300' : 'text-white'}`}>
+                        <h3 className={`font-semibold ${notification.read ? 'text-slate-300' : 'text-white'}`}>
                           {notification.title}
                         </h3>
                         {!notification.read && (
                           <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
                         )}
                       </div>
-                      <p className="text-gray-400 text-sm mb-2">{notification.message}</p>
+                      <p className="text-slate-400 text-sm mb-3">{notification.message}</p>
                       
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1 text-gray-500 text-xs">
+                      <div className="flex items-center flex-wrap gap-4">
+                        <span className="flex items-center gap-1.5 text-slate-500 text-xs font-mono">
                           <Clock className="w-3 h-3" />
                           {notification.timestamp}
                         </span>
-                        <span className="flex items-center gap-1 text-gray-500 text-xs">
+                        <span className="flex items-center gap-1.5 text-slate-500 text-xs font-mono uppercase">
                           {getCategoryIcon(notification.category)}
                           {notification.category}
                         </span>
                         {notification.actor && (
-                          <span className="flex items-center gap-1 text-gray-500 text-xs">
-                            <div className="w-4 h-4 bg-cyan-500/30 rounded-full flex items-center justify-center text-[8px] text-cyan-400">
+                          <span className="flex items-center gap-1.5 text-slate-500 text-xs">
+                            <div className="w-5 h-5 bg-cyan-500/20 border border-cyan-500/30 rounded-full flex items-center justify-center text-[9px] text-cyan-400 font-bold">
                               {notification.actor.avatar}
                             </div>
                             {notification.actor.name}
@@ -354,21 +368,21 @@ const NotificationsCenter: React.FC = () => {
                       </div>
 
                       {notification.actionUrl && (
-                        <button className="mt-3 px-3 py-1.5 bg-cyan-500/20 text-cyan-400 rounded-lg text-sm hover:bg-cyan-500/30 transition-all">
+                        <button className="mt-3 px-4 py-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded-lg text-sm transition-all duration-200 hover:shadow-[0_0_15px_rgba(34,197,220,0.2)]">
                           {notification.actionLabel}
                         </button>
                       )}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       {!notification.read && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             markAsRead(notification.id);
                           }}
-                          className="p-2 text-gray-400 hover:text-cyan-400 hover:bg-cyan-500/20 rounded-lg transition-all"
+                          className="p-2 text-slate-500 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-all"
                           title="Mark as read"
                         >
                           <Check className="w-4 h-4" />
@@ -379,7 +393,7 @@ const NotificationsCenter: React.FC = () => {
                           e.stopPropagation();
                           deleteNotification(notification.id);
                         }}
-                        className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                        className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
                         title="Delete"
                       >
                         <X className="w-4 h-4" />
@@ -394,154 +408,90 @@ const NotificationsCenter: React.FC = () => {
 
         {/* Settings Panel */}
         {showSettings && (
-          <div className="w-80 bg-gray-800/30 rounded-xl border border-gray-700/50 p-6 h-fit">
+          <div className="w-full lg:w-80 bg-[#080F1A]/60 backdrop-blur-sm rounded-xl border border-cyan-500/10 p-6 h-fit">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5 text-cyan-400" />
               Notification Settings
             </h3>
 
             <div className="space-y-4">
-              {/* Email Notifications */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm">Email Notifications</p>
-                  <p className="text-gray-500 text-xs">Receive updates via email</p>
-                </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, emailNotifications: !prev.emailNotifications }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.emailNotifications ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.emailNotifications ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Push Notifications */}
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white text-sm">Push Notifications</p>
-                  <p className="text-gray-500 text-xs">Browser push alerts</p>
-                </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, pushNotifications: !prev.pushNotifications }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.pushNotifications ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.pushNotifications ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
-
-              {/* Sound */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {notificationSettings.soundEnabled ? (
-                    <Volume2 className="w-4 h-4 text-cyan-400" />
-                  ) : (
-                    <VolumeX className="w-4 h-4 text-gray-400" />
-                  )}
-                  <div>
-                    <p className="text-white text-sm">Sound</p>
-                    <p className="text-gray-500 text-xs">Notification sounds</p>
+              {/* Toggle Items */}
+              {[
+                { key: 'emailNotifications', label: 'Email Notifications', desc: 'Receive updates via email', icon: null },
+                { key: 'pushNotifications', label: 'Push Notifications', desc: 'Browser push alerts', icon: null },
+                { key: 'soundEnabled', label: 'Sound', desc: 'Notification sounds', icon: notificationSettings.soundEnabled ? Volume2 : VolumeX },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {item.icon && <item.icon className={`w-4 h-4 ${notificationSettings[item.key as keyof typeof notificationSettings] ? 'text-cyan-400' : 'text-slate-500'}`} />}
+                    <div>
+                      <p className="text-white text-sm">{item.label}</p>
+                      <p className="text-slate-600 text-xs">{item.desc}</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setNotificationSettings(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof notificationSettings] }))}
+                    className={`w-11 h-6 rounded-full transition-all duration-200 relative ${
+                      notificationSettings[item.key as keyof typeof notificationSettings] ? 'bg-cyan-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                      notificationSettings[item.key as keyof typeof notificationSettings] ? 'left-[22px]' : 'left-0.5'
+                    }`} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, soundEnabled: !prev.soundEnabled }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.soundEnabled ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.soundEnabled ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
+              ))}
 
-              <div className="border-t border-gray-700/50 my-4" />
+              <div className="border-t border-cyan-500/10 my-4" />
 
-              <p className="text-gray-400 text-sm font-medium mb-3">Alert Types</p>
+              <p className="text-xs font-mono uppercase tracking-wider text-slate-500 mb-3">Alert Types</p>
 
-              {/* Execution Alerts */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white text-sm">Execution Alerts</span>
+              {/* Alert Type Toggles */}
+              {[
+                { key: 'executionAlerts', label: 'Execution Alerts', icon: Zap, color: 'text-amber-400' },
+                { key: 'collaborationAlerts', label: 'Collaboration', icon: Users, color: 'text-emerald-400' },
+                { key: 'systemAlerts', label: 'System Updates', icon: Settings, color: 'text-cyan-400' },
+              ].map(item => (
+                <div key={item.key} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <item.icon className={`w-4 h-4 ${item.color}`} />
+                    <span className="text-white text-sm">{item.label}</span>
+                  </div>
+                  <button
+                    onClick={() => setNotificationSettings(prev => ({ ...prev, [item.key]: !prev[item.key as keyof typeof notificationSettings] }))}
+                    className={`w-11 h-6 rounded-full transition-all duration-200 relative ${
+                      notificationSettings[item.key as keyof typeof notificationSettings] ? 'bg-cyan-500' : 'bg-slate-700'
+                    }`}
+                  >
+                    <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                      notificationSettings[item.key as keyof typeof notificationSettings] ? 'left-[22px]' : 'left-0.5'
+                    }`} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, executionAlerts: !prev.executionAlerts }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.executionAlerts ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.executionAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
+              ))}
 
-              {/* Collaboration Alerts */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <span className="text-white text-sm">Collaboration</span>
-                </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, collaborationAlerts: !prev.collaborationAlerts }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.collaborationAlerts ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.collaborationAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
-
-              {/* System Alerts */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-cyan-400" />
-                  <span className="text-white text-sm">System Updates</span>
-                </div>
-                <button
-                  onClick={() => setNotificationSettings(prev => ({ ...prev, systemAlerts: !prev.systemAlerts }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.systemAlerts ? 'bg-cyan-500' : 'bg-gray-600'
-                  }`}
-                >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.systemAlerts ? 'translate-x-6' : 'translate-x-0.5'
-                  }`} />
-                </button>
-              </div>
-
-              <div className="border-t border-gray-700/50 my-4" />
+              <div className="border-t border-cyan-500/10 my-4" />
 
               {/* Marketing Emails */}
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-white text-sm">Marketing Emails</p>
-                  <p className="text-gray-500 text-xs">Product news & updates</p>
+                  <p className="text-slate-600 text-xs">Product news & updates</p>
                 </div>
                 <button
                   onClick={() => setNotificationSettings(prev => ({ ...prev, marketingEmails: !prev.marketingEmails }))}
-                  className={`w-12 h-6 rounded-full transition-all duration-200 ${
-                    notificationSettings.marketingEmails ? 'bg-cyan-500' : 'bg-gray-600'
+                  className={`w-11 h-6 rounded-full transition-all duration-200 relative ${
+                    notificationSettings.marketingEmails ? 'bg-cyan-500' : 'bg-slate-700'
                   }`}
                 >
-                  <div className={`w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
-                    notificationSettings.marketingEmails ? 'translate-x-6' : 'translate-x-0.5'
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform duration-200 ${
+                    notificationSettings.marketingEmails ? 'left-[22px]' : 'left-0.5'
                   }`} />
                 </button>
               </div>
             </div>
 
-            <button className="w-full mt-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-400 transition-all duration-200 font-medium">
+            <button className="w-full mt-6 py-2.5 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/30 rounded-lg transition-all duration-200 font-medium text-sm hover:shadow-[0_0_20px_rgba(34,197,220,0.2)]">
               Save Settings
             </button>
           </div>

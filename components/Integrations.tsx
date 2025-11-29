@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { Link2, Plus, Trash2, X, Send, MessageSquare, Gamepad2, Webhook, Check } from 'lucide-react';
 
 interface Integration {
   id: string;
@@ -16,6 +17,21 @@ interface Integration {
 interface IntegrationsProps {
   workspaceId: string;
 }
+
+// 3D Hover effect helper
+const apply3DHover = (e: React.MouseEvent<HTMLElement>, intensity: number = 5) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = (e.clientX - centerX) / (rect.width / 2);
+  const deltaY = (e.clientY - centerY) / (rect.height / 2);
+  
+  e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -intensity}deg) rotateY(${deltaX * intensity}deg) translateY(-4px) scale(1.02)`;
+};
+
+const reset3DHover = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+};
 
 export const Integrations: React.FC<IntegrationsProps> = ({ workspaceId }) => {
   const { hasPermission } = useAuth();
@@ -148,82 +164,137 @@ export const Integrations: React.FC<IntegrationsProps> = ({ workspaceId }) => {
 
   const getIcon = (type: Integration['type']) => {
     switch (type) {
-      case 'slack':
-        return '💬';
-      case 'discord':
-        return '🎮';
-      case 'webhook':
-        return '🔗';
+      case 'slack': return <MessageSquare size={20} className="text-purple-400" />;
+      case 'discord': return <Gamepad2 size={20} className="text-indigo-400" />;
+      case 'webhook': return <Webhook size={20} className="text-cyan-400" />;
     }
   };
 
   return (
-    <div className="integrations">
-      <div className="header">
-        <h2>Integrations</h2>
+    <div className="p-6 md:p-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <Link2 size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">Integrations</h1>
+            <p className="text-sm text-slate-400 font-mono">workspace.integrations.config</p>
+          </div>
+        </div>
+        
         {hasPermission('settings:manage') && (
-          <button onClick={() => setShowAddForm(true)} className="btn-add">
-            + Add Integration
+          <button 
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all hover:scale-105"
+          >
+            <Plus size={18} />
+            Add Integration
           </button>
         )}
       </div>
 
+      {/* Add Integration Modal */}
       {showAddForm && (
-        <div className="modal-overlay" onClick={() => setShowAddForm(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Add Integration</h3>
-            <form onSubmit={addIntegration}>
-              <label>
-                Type
-                <select
-                  value={newIntegration.type}
-                  onChange={(e) => setNewIntegration({ ...newIntegration, type: e.target.value as Integration['type'] })}
-                >
-                  <option value="slack">Slack</option>
-                  <option value="discord">Discord</option>
-                  <option value="webhook">Custom Webhook</option>
-                </select>
-              </label>
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddForm(false)}
+        >
+          <div 
+            className="bg-[#0c1621] border border-cyan-500/20 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-cyan-500/10">
+              <h2 className="text-xl font-bold text-white">Add Integration</h2>
+              <button 
+                onClick={() => setShowAddForm(false)}
+                className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            
+            <form onSubmit={addIntegration} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Type</label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['slack', 'discord', 'webhook'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setNewIntegration({ ...newIntegration, type })}
+                      className={`p-3 rounded-lg border text-center capitalize transition-all ${
+                        newIntegration.type === type
+                          ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
+                          : 'bg-[#080F1A] border-cyan-500/10 text-slate-400 hover:border-cyan-500/30'
+                      }`}
+                    >
+                      {type === 'slack' && <MessageSquare size={20} className="mx-auto mb-1" />}
+                      {type === 'discord' && <Gamepad2 size={20} className="mx-auto mb-1" />}
+                      {type === 'webhook' && <Webhook size={20} className="mx-auto mb-1" />}
+                      <span className="text-sm">{type}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-              <label>
-                Name
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Name</label>
                 <input
                   type="text"
                   value={newIntegration.name}
                   onChange={(e) => setNewIntegration({ ...newIntegration, name: e.target.value })}
                   placeholder="e.g., Team Notifications"
                   required
+                  className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                 />
-              </label>
+              </div>
 
-              <label>
-                Webhook URL
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Webhook URL</label>
                 <input
                   type="url"
                   value={newIntegration.url}
                   onChange={(e) => setNewIntegration({ ...newIntegration, url: e.target.value })}
                   placeholder="https://hooks.slack.com/..."
                   required
+                  className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                 />
-              </label>
+              </div>
 
               {newIntegration.type !== 'webhook' && (
-                <label>
-                  Channel
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Channel</label>
                   <input
                     type="text"
                     value={newIntegration.channel}
                     onChange={(e) => setNewIntegration({ ...newIntegration, channel: e.target.value })}
                     placeholder="e.g., #general"
+                    className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                   />
-                </label>
+                </div>
               )}
 
-              <label>
-                Events to Notify
-                <div className="events-checkbox-group">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-3">Events to Notify</label>
+                <div className="grid grid-cols-2 gap-3">
                   {availableEvents.map((event) => (
-                    <label key={event} className="checkbox-label">
+                    <label 
+                      key={event} 
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        newIntegration.events.includes(event)
+                          ? 'bg-cyan-500/10 border-cyan-500/30'
+                          : 'bg-[#080F1A] border-cyan-500/10 hover:border-cyan-500/20'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded flex items-center justify-center ${
+                        newIntegration.events.includes(event)
+                          ? 'bg-cyan-500'
+                          : 'bg-slate-700 border border-slate-600'
+                      }`}>
+                        {newIntegration.events.includes(event) && <Check size={14} className="text-black" />}
+                      </div>
                       <input
                         type="checkbox"
                         checked={newIntegration.events.includes(event)}
@@ -236,22 +307,30 @@ export const Integrations: React.FC<IntegrationsProps> = ({ workspaceId }) => {
                           } else {
                             setNewIntegration({
                               ...newIntegration,
-                              events: newIntegration.events.filter((e) => e !== event),
+                              events: newIntegration.events.filter((ev) => ev !== event),
                             });
                           }
                         }}
+                        className="sr-only"
                       />
-                      {event.replace(/_/g, ' ')}
+                      <span className="text-sm text-slate-300 capitalize">{event.replace(/_/g, ' ')}</span>
                     </label>
                   ))}
                 </div>
-              </label>
+              </div>
 
-              <div className="form-actions">
-                <button type="button" onClick={() => setShowAddForm(false)} className="btn-cancel">
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddForm(false)}
+                  className="flex-1 py-3 rounded-lg bg-slate-700/50 text-slate-300 font-medium hover:bg-slate-700 transition-colors"
+                >
                   Cancel
                 </button>
-                <button type="submit" className="btn-submit">
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all"
+                >
                   Add Integration
                 </button>
               </div>
@@ -260,53 +339,78 @@ export const Integrations: React.FC<IntegrationsProps> = ({ workspaceId }) => {
         </div>
       )}
 
-      <div className="integrations-list">
-        {integrations.length === 0 ? (
-          <div className="empty-state">
-            <p>No integrations configured yet</p>
-            <p className="hint">Add integrations to receive notifications about workflow events</p>
-          </div>
-        ) : (
-          integrations.map((integration) => (
-            <div key={integration.id} className={`integration-card ${!integration.enabled ? 'disabled' : ''}`}>
-              <div className="integration-header">
-                <div className="integration-icon">{getIcon(integration.type)}</div>
-                <div className="integration-info">
-                  <h3>{integration.name}</h3>
-                  <span className="integration-type">{integration.type}</span>
+      {/* Integrations Grid */}
+      {integrations.length === 0 ? (
+        <div className="text-center py-16">
+          <Link2 size={48} className="mx-auto text-slate-600 mb-4" />
+          <p className="text-slate-400 mb-2">No integrations configured yet</p>
+          <p className="text-sm text-slate-500">Add integrations to receive notifications about workflow events</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {integrations.map((integration) => (
+            <div 
+              key={integration.id}
+              className={`p-5 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
+                integration.enabled 
+                  ? 'bg-[#080F1A]/60 border-cyan-500/20' 
+                  : 'bg-[#080F1A]/30 border-slate-700/50 opacity-60'
+              }`}
+              style={{ 
+                transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              }}
+              onMouseMove={(e) => apply3DHover(e)}
+              onMouseLeave={reset3DHover}
+            >
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                    {getIcon(integration.type)}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">{integration.name}</h3>
+                    <p className="text-sm text-slate-400 capitalize">{integration.type}</p>
+                  </div>
                 </div>
-                <div className="integration-actions">
-                  <label className="toggle">
-                    <input
-                      type="checkbox"
-                      checked={integration.enabled}
-                      onChange={(e) => toggleIntegration(integration.id, e.target.checked)}
-                      disabled={!hasPermission('settings:manage')}
-                    />
-                    <span className="toggle-slider"></span>
-                  </label>
-                </div>
+                
+                {/* Toggle Switch */}
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={integration.enabled}
+                    onChange={(e) => toggleIntegration(integration.id, e.target.checked)}
+                    disabled={!hasPermission('settings:manage')}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
               </div>
 
-              <div className="integration-details">
+              <div className="space-y-3 mb-4 text-sm">
                 {integration.config.url && (
-                  <div className="detail">
-                    <span className="detail-label">URL:</span>
-                    <code>{integration.config.url}</code>
+                  <div>
+                    <span className="text-slate-500 block mb-1">URL:</span>
+                    <code className="block px-3 py-2 rounded-lg bg-slate-800/50 text-cyan-400 text-xs break-all">
+                      {integration.config.url}
+                    </code>
                   </div>
                 )}
                 {integration.config.channel && (
-                  <div className="detail">
-                    <span className="detail-label">Channel:</span>
-                    <code>{integration.config.channel}</code>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Channel:</span>
+                    <code className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-xs">{integration.config.channel}</code>
                   </div>
                 )}
                 {integration.config.events && integration.config.events.length > 0 && (
-                  <div className="detail">
-                    <span className="detail-label">Events:</span>
-                    <div className="events-tags">
+                  <div>
+                    <span className="text-slate-500 block mb-2">Events:</span>
+                    <div className="flex flex-wrap gap-2">
                       {integration.config.events.map((event) => (
-                        <span key={event} className="event-tag">
+                        <span 
+                          key={event} 
+                          className="px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs capitalize"
+                        >
                           {event.replace(/_/g, ' ')}
                         </span>
                       ))}
@@ -316,295 +420,27 @@ export const Integrations: React.FC<IntegrationsProps> = ({ workspaceId }) => {
               </div>
 
               {hasPermission('settings:manage') && (
-                <div className="integration-footer">
-                  <button onClick={() => testIntegration(integration.id)} className="btn-test">
+                <div className="flex gap-3 pt-4 border-t border-cyan-500/10">
+                  <button 
+                    onClick={() => testIntegration(integration.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-medium hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <Send size={14} />
                     Test
                   </button>
-                  <button onClick={() => deleteIntegration(integration.id)} className="btn-delete">
+                  <button 
+                    onClick={() => deleteIntegration(integration.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors"
+                  >
+                    <Trash2 size={14} />
                     Delete
                   </button>
                 </div>
               )}
             </div>
-          ))
-        )}
-      </div>
-
-      <style jsx>{`
-        .integrations {
-          padding: 20px;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
-        .btn-add {
-          background: #00ff9f;
-          color: #000;
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: #1a1a1a;
-          padding: 30px;
-          border-radius: 12px;
-          max-width: 500px;
-          width: 90%;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .modal h3 {
-          margin-top: 0;
-          margin-bottom: 20px;
-        }
-
-        .modal label {
-          display: block;
-          margin-bottom: 15px;
-          font-weight: 600;
-        }
-
-        .modal input,
-        .modal select {
-          display: block;
-          width: 100%;
-          padding: 10px;
-          margin-top: 5px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-        }
-
-        .events-checkbox-group {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: normal;
-          text-transform: capitalize;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 20px;
-        }
-
-        .btn-cancel {
-          flex: 1;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .btn-submit {
-          flex: 1;
-          background: #00ff9f;
-          color: #000;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .integrations-list {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-          gap: 20px;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        .hint {
-          font-size: 14px;
-          margin-top: 10px;
-        }
-
-        .integration-card {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 20px;
-        }
-
-        .integration-card.disabled {
-          opacity: 0.5;
-        }
-
-        .integration-header {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
-        }
-
-        .integration-icon {
-          font-size: 32px;
-        }
-
-        .integration-info {
-          flex: 1;
-        }
-
-        .integration-info h3 {
-          margin: 0 0 5px 0;
-          font-size: 18px;
-        }
-
-        .integration-type {
-          text-transform: capitalize;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 14px;
-        }
-
-        .toggle {
-          position: relative;
-          display: inline-block;
-          width: 50px;
-          height: 24px;
-        }
-
-        .toggle input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-
-        .toggle-slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(255, 255, 255, 0.2);
-          transition: 0.3s;
-          border-radius: 24px;
-        }
-
-        .toggle-slider:before {
-          position: absolute;
-          content: '';
-          height: 18px;
-          width: 18px;
-          left: 3px;
-          bottom: 3px;
-          background-color: white;
-          transition: 0.3s;
-          border-radius: 50%;
-        }
-
-        .toggle input:checked + .toggle-slider {
-          background-color: #00ff9f;
-        }
-
-        .toggle input:checked + .toggle-slider:before {
-          transform: translateX(26px);
-        }
-
-        .integration-details {
-          margin-bottom: 15px;
-        }
-
-        .detail {
-          margin-bottom: 10px;
-        }
-
-        .detail-label {
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 14px;
-          margin-right: 8px;
-        }
-
-        .detail code {
-          background: rgba(0, 0, 0, 0.3);
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 12px;
-          word-break: break-all;
-        }
-
-        .events-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 5px;
-        }
-
-        .event-tag {
-          background: rgba(0, 212, 255, 0.2);
-          color: #00d4ff;
-          padding: 4px 10px;
-          border-radius: 12px;
-          font-size: 11px;
-          text-transform: capitalize;
-        }
-
-        .integration-footer {
-          display: flex;
-          gap: 10px;
-          padding-top: 15px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-test {
-          background: #00d4ff;
-          color: #000;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          font-size: 14px;
-        }
-
-        .btn-delete {
-          background: #ff4444;
-          color: white;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-      `}</style>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

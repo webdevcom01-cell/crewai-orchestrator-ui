@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { GitBranch, RefreshCw, RotateCcw, Save, Github, GitlabIcon as Gitlab, History, User, Bot, ListTodo, Users } from 'lucide-react';
 
 interface WorkflowVersion {
   id: string;
@@ -18,6 +19,21 @@ interface WorkflowVersion {
 interface VersionControlProps {
   workspaceId: string;
 }
+
+// 3D Hover effect helper
+const apply3DHover = (e: React.MouseEvent<HTMLElement>, intensity: number = 5) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = (e.clientX - centerX) / (rect.width / 2);
+  const deltaY = (e.clientY - centerY) / (rect.height / 2);
+  
+  e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -intensity}deg) rotateY(${deltaX * intensity}deg) translateY(-4px) scale(1.02)`;
+};
+
+const reset3DHover = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+};
 
 export const VersionControl: React.FC<VersionControlProps> = ({ workspaceId }) => {
   const { hasPermission } = useAuth();
@@ -150,20 +166,38 @@ export const VersionControl: React.FC<VersionControlProps> = ({ workspaceId }) =
   };
 
   if (isLoading) {
-    return <div className="loading">Loading version history...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="version-control">
-      <h2>Version Control</h2>
+    <div className="p-6 md:p-8 max-w-5xl space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+          <GitBranch size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+        </div>
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-white">Version Control</h1>
+          <p className="text-sm text-slate-400 font-mono">workspace.versioning.history</p>
+        </div>
+      </div>
 
+      {/* Git Integration */}
       {hasPermission('settings:manage') && (
-        <div className="git-config">
-          <h3>Git Integration</h3>
-          <div className="config-form">
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            {gitConfig.provider === 'github' ? <Github size={18} /> : <Gitlab size={18} />}
+            Git Integration
+          </h3>
+          <div className="flex flex-wrap gap-3">
             <select
               value={gitConfig.provider}
               onChange={(e) => setGitConfig({ ...gitConfig, provider: e.target.value as 'github' | 'gitlab' })}
+              className="px-4 py-2.5 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
             >
               <option value="github">GitHub</option>
               <option value="gitlab">GitLab</option>
@@ -173,205 +207,146 @@ export const VersionControl: React.FC<VersionControlProps> = ({ workspaceId }) =
               placeholder="Repository (owner/repo)"
               value={gitConfig.repo}
               onChange={(e) => setGitConfig({ ...gitConfig, repo: e.target.value })}
+              className="flex-1 min-w-[200px] px-4 py-2.5 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
             />
             <input
               type="text"
               placeholder="Branch"
               value={gitConfig.branch}
               onChange={(e) => setGitConfig({ ...gitConfig, branch: e.target.value })}
+              className="w-32 px-4 py-2.5 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
             />
-            <button onClick={saveGitConfig}>Save Config</button>
-            <button onClick={syncWithGit} className="btn-sync">Sync Now</button>
+            <button 
+              onClick={saveGitConfig}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 text-black font-bold hover:bg-emerald-400 transition-all"
+            >
+              <Save size={16} />
+              Save
+            </button>
+            <button 
+              onClick={syncWithGit}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-cyan-500 text-black font-bold hover:bg-cyan-400 transition-all"
+            >
+              <RefreshCw size={16} />
+              Sync
+            </button>
           </div>
         </div>
       )}
 
+      {/* Create New Version */}
       {hasPermission('workspace:write') && (
-        <form onSubmit={createVersion} className="commit-form">
-          <h3>Create New Version</h3>
-          <input
-            type="text"
-            placeholder="Commit message"
-            value={commitMessage}
-            onChange={(e) => setCommitMessage(e.target.value)}
-            required
-          />
-          <button type="submit">Create Version</button>
+        <form onSubmit={createVersion} className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-white mb-4">Create New Version</h3>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Commit message..."
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              required
+              className="flex-1 px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+            />
+            <button 
+              type="submit"
+              className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all"
+            >
+              <Save size={18} />
+              Create Version
+            </button>
+          </div>
         </form>
       )}
 
-      <div className="version-history">
-        <h3>Version History</h3>
-        <div className="timeline">
+      {/* Version History */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <History size={18} className="text-cyan-400" />
+          Version History
+        </h3>
+        
+        <div className="relative pl-8 space-y-4">
+          {/* Timeline line */}
+          <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-cyan-500/20" />
+          
           {versions.map((version) => (
-            <div key={version.id} className={`version-item ${version.isCurrent ? 'current' : ''}`}>
-              <div className="version-header">
-                <span className="version-number">{version.version}</span>
-                {version.isCurrent && <span className="current-badge">Current</span>}
-                <span className="version-time">{new Date(version.timestamp).toLocaleString()}</span>
+            <div 
+              key={version.id}
+              className={`relative p-5 rounded-xl border backdrop-blur-sm transition-all duration-300 ${
+                version.isCurrent 
+                  ? 'bg-cyan-500/10 border-cyan-500/40' 
+                  : 'bg-[#080F1A]/60 border-cyan-500/15'
+              }`}
+              style={{ 
+                transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+                transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+              }}
+              onMouseMove={(e) => apply3DHover(e, 3)}
+              onMouseLeave={reset3DHover}
+            >
+              {/* Timeline dot */}
+              <div className={`absolute -left-5 top-6 w-3 h-3 rounded-full ${
+                version.isCurrent 
+                  ? 'bg-cyan-400 shadow-[0_0_12px_rgba(34,197,220,0.6)]' 
+                  : 'bg-slate-500'
+              }`} />
+              
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-cyan-400 font-bold font-mono">{version.version}</span>
+                    {version.isCurrent && (
+                      <span className="px-2 py-0.5 rounded-full bg-cyan-500 text-black text-xs font-bold">
+                        Current
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-white mb-2">{version.message}</p>
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <User size={14} />
+                      {version.author}
+                    </span>
+                    <span>{new Date(version.timestamp).toLocaleString()}</span>
+                  </div>
+                  
+                  {/* Changes */}
+                  <div className="flex gap-4 mt-3 text-xs">
+                    {version.changes.agents !== undefined && (
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Bot size={12} className="text-cyan-400" />
+                        {version.changes.agents} agents
+                      </span>
+                    )}
+                    {version.changes.tasks !== undefined && (
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <ListTodo size={12} className="text-emerald-400" />
+                        {version.changes.tasks} tasks
+                      </span>
+                    )}
+                    {version.changes.crews !== undefined && (
+                      <span className="flex items-center gap-1 text-slate-400">
+                        <Users size={12} className="text-purple-400" />
+                        {version.changes.crews} crews
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {!version.isCurrent && hasPermission('workspace:write') && (
+                  <button 
+                    onClick={() => restoreVersion(version.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm font-medium hover:bg-pink-500/20 transition-colors"
+                  >
+                    <RotateCcw size={14} />
+                    Restore
+                  </button>
+                )}
               </div>
-              <div className="version-message">{version.message}</div>
-              <div className="version-author">by {version.author}</div>
-              <div className="version-changes">
-                {version.changes.agents && <span>Agents: {version.changes.agents}</span>}
-                {version.changes.tasks && <span>Tasks: {version.changes.tasks}</span>}
-                {version.changes.crews && <span>Crews: {version.changes.crews}</span>}
-              </div>
-              {!version.isCurrent && hasPermission('workspace:write') && (
-                <button onClick={() => restoreVersion(version.id)} className="btn-restore">
-                  Restore This Version
-                </button>
-              )}
             </div>
           ))}
         </div>
       </div>
-
-      <style jsx>{`
-        .version-control {
-          padding: 20px;
-        }
-
-        .git-config,
-        .commit-form {
-          background: rgba(255, 255, 255, 0.05);
-          padding: 20px;
-          border-radius: 8px;
-          margin-bottom: 20px;
-        }
-
-        .config-form {
-          display: flex;
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .config-form input,
-        .config-form select,
-        .commit-form input {
-          padding: 10px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-          flex: 1;
-        }
-
-        .config-form button,
-        .commit-form button {
-          background: #00ff9f;
-          color: #000;
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .btn-sync {
-          background: #00d4ff !important;
-        }
-
-        .timeline {
-          position: relative;
-          padding-left: 40px;
-        }
-
-        .timeline::before {
-          content: '';
-          position: absolute;
-          left: 20px;
-          top: 0;
-          bottom: 0;
-          width: 2px;
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        .version-item {
-          position: relative;
-          margin-bottom: 30px;
-          padding: 15px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          border-left: 3px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .version-item.current {
-          border-left-color: #00ff9f;
-          background: rgba(0, 255, 159, 0.1);
-        }
-
-        .version-item::before {
-          content: '';
-          position: absolute;
-          left: -30px;
-          top: 20px;
-          width: 12px;
-          height: 12px;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.5);
-        }
-
-        .version-item.current::before {
-          background: #00ff9f;
-          box-shadow: 0 0 10px #00ff9f;
-        }
-
-        .version-header {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 8px;
-        }
-
-        .version-number {
-          font-weight: bold;
-          color: #00ff9f;
-        }
-
-        .current-badge {
-          background: #00ff9f;
-          color: #000;
-          padding: 2px 8px;
-          border-radius: 10px;
-          font-size: 12px;
-          font-weight: bold;
-        }
-
-        .version-time {
-          margin-left: auto;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 14px;
-        }
-
-        .version-message {
-          margin-bottom: 5px;
-        }
-
-        .version-author {
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 14px;
-          margin-bottom: 10px;
-        }
-
-        .version-changes {
-          display: flex;
-          gap: 15px;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.7);
-          margin-bottom: 10px;
-        }
-
-        .btn-restore {
-          background: #ff0080;
-          color: white;
-          padding: 6px 12px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-        }
-      `}</style>
     </div>
   );
 };

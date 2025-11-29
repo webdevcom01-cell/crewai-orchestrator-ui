@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { Palette, Upload, Save, Eye, EyeOff, Globe, AlertTriangle } from 'lucide-react';
 
 interface BrandingConfig {
   logo?: string;
@@ -123,142 +124,167 @@ export const WhiteLabel: React.FC<WhiteLabelProps> = ({ workspaceId }) => {
 
   if (!hasPermission('settings:manage')) {
     return (
-      <div className="white-label">
-        <h2>White Label Customization</h2>
-        <p>You do not have permission to manage white label settings. Contact your workspace owner.</p>
+      <div className="p-6 md:p-8 text-center">
+        <Palette size={48} className="mx-auto text-slate-600 mb-4" />
+        <h2 className="text-xl font-bold text-white mb-2">White Label Customization</h2>
+        <p className="text-slate-400">You do not have permission to manage white label settings. Contact your workspace owner.</p>
       </div>
     );
   }
 
   return (
-    <div className="white-label">
-      <div className="header">
-        <h2>White Label Customization</h2>
-        <div className="header-actions">
-          <label className="toggle-label">
-            <input type="checkbox" checked={previewMode} onChange={(e) => setPreviewMode(e.target.checked)} />
-            Preview Mode
-          </label>
-          <button onClick={saveBrandingConfig} disabled={isSaving} className="btn-save">
+    <div className="p-6 md:p-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <Palette size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">White Label Customization</h1>
+            <p className="text-sm text-slate-400 font-mono">workspace.branding.config</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setPreviewMode(!previewMode)}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border font-medium transition-all ${
+              previewMode 
+                ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' 
+                : 'bg-[#080F1A] border-cyan-500/20 text-slate-400 hover:border-cyan-500/30'
+            }`}
+          >
+            {previewMode ? <EyeOff size={18} /> : <Eye size={18} />}
+            {previewMode ? 'Exit Preview' : 'Preview'}
+          </button>
+          <button 
+            onClick={saveBrandingConfig}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all disabled:opacity-50"
+          >
+            <Save size={18} />
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
 
-      <div className="config-grid">
-        <div className="config-section">
-          <h3>Brand Identity</h3>
-
-          <div className="form-group">
-            <label>Company Name</label>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Brand Identity */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm space-y-6">
+          <h3 className="text-lg font-bold text-white">Brand Identity</h3>
+          
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Company Name</label>
             <input
               type="text"
               value={config.companyName}
               onChange={(e) => setConfig({ ...config, companyName: e.target.value })}
               placeholder="Your Company Name"
+              className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
             />
           </div>
 
-          <div className="form-group">
-            <label>Logo</label>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Logo</label>
             {config.logo && (
-              <div className="image-preview">
-                <img src={config.logo} alt="Logo" />
+              <div className="mb-3 p-4 rounded-lg bg-slate-800/50 flex justify-center">
+                <img src={config.logo} alt="Logo" className="max-h-12" />
               </div>
             )}
-            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
-            <span className="hint">Recommended: 200x50px PNG with transparent background</span>
+            <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-cyan-500/30 text-cyan-400 cursor-pointer hover:bg-cyan-500/5 transition-colors">
+              <Upload size={18} />
+              <span>Upload Logo</span>
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} className="hidden" />
+            </label>
+            <p className="text-xs text-slate-500 mt-2">Recommended: 200x50px PNG with transparent background</p>
           </div>
 
-          <div className="form-group">
-            <label>Favicon</label>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Favicon</label>
             {config.favicon && (
-              <div className="image-preview small">
-                <img src={config.favicon} alt="Favicon" />
+              <div className="mb-3 p-4 rounded-lg bg-slate-800/50 flex justify-center">
+                <img src={config.favicon} alt="Favicon" className="w-8 h-8" />
               </div>
             )}
-            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'favicon')} />
-            <span className="hint">Recommended: 32x32px PNG or ICO</span>
+            <label className="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-dashed border-cyan-500/30 text-cyan-400 cursor-pointer hover:bg-cyan-500/5 transition-colors">
+              <Upload size={18} />
+              <span>Upload Favicon</span>
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'favicon')} className="hidden" />
+            </label>
+            <p className="text-xs text-slate-500 mt-2">Recommended: 32x32px PNG or ICO</p>
           </div>
 
-          <div className="form-group">
-            <label>Custom Domain</label>
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-300 mb-2">
+              <Globe size={14} />
+              Custom Domain
+            </label>
             <input
               type="text"
               value={config.customDomain || ''}
               onChange={(e) => setConfig({ ...config, customDomain: e.target.value })}
               placeholder="app.yourdomain.com"
+              className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
             />
-            <span className="hint">Configure DNS to point to our servers</span>
+            <p className="text-xs text-slate-500 mt-2">Configure DNS to point to our servers</p>
           </div>
         </div>
 
-        <div className="config-section">
-          <h3>Color Scheme</h3>
-
-          <div className="form-group">
-            <label>Primary Color</label>
-            <div className="color-picker">
-              <input
-                type="color"
-                value={config.primaryColor}
-                onChange={(e) => setConfig({ ...config, primaryColor: e.target.value })}
-              />
-              <input
-                type="text"
-                value={config.primaryColor}
-                onChange={(e) => setConfig({ ...config, primaryColor: e.target.value })}
-                placeholder="#00ff9f"
-              />
+        {/* Color Scheme */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm space-y-6">
+          <h3 className="text-lg font-bold text-white">Color Scheme</h3>
+          
+          {[
+            { key: 'primaryColor', label: 'Primary Color', hint: 'Main brand color (buttons, links, highlights)' },
+            { key: 'secondaryColor', label: 'Secondary Color', hint: 'Supporting color for gradients and accents' },
+            { key: 'accentColor', label: 'Accent Color', hint: 'Accent color for alerts and special elements' },
+          ].map(({ key, label, hint }) => (
+            <div key={key}>
+              <label className="block text-sm font-medium text-slate-300 mb-2">{label}</label>
+              <div className="flex gap-3">
+                <input
+                  type="color"
+                  value={config[key as keyof BrandingConfig] as string}
+                  onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
+                  className="w-14 h-12 rounded-lg border border-cyan-500/20 cursor-pointer bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={config[key as keyof BrandingConfig] as string}
+                  onChange={(e) => setConfig({ ...config, [key]: e.target.value })}
+                  className="flex-1 px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white font-mono focus:outline-none focus:border-cyan-500/50 transition-colors"
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">{hint}</p>
             </div>
-            <span className="hint">Main brand color (buttons, links, highlights)</span>
-          </div>
+          ))}
 
-          <div className="form-group">
-            <label>Secondary Color</label>
-            <div className="color-picker">
-              <input
-                type="color"
-                value={config.secondaryColor}
-                onChange={(e) => setConfig({ ...config, secondaryColor: e.target.value })}
-              />
-              <input
-                type="text"
-                value={config.secondaryColor}
-                onChange={(e) => setConfig({ ...config, secondaryColor: e.target.value })}
-                placeholder="#00d4ff"
-              />
+          {/* Preview */}
+          <div className="pt-4 border-t border-cyan-500/10">
+            <h4 className="text-sm font-medium text-slate-300 mb-3">Preview</h4>
+            <div className="flex gap-2 mb-3">
+              <button 
+                style={{ background: config.primaryColor }} 
+                className="flex-1 py-2 rounded-lg text-black font-bold text-sm"
+              >
+                Primary
+              </button>
+              <button 
+                style={{ background: config.secondaryColor }} 
+                className="flex-1 py-2 rounded-lg text-black font-bold text-sm"
+              >
+                Secondary
+              </button>
+              <button 
+                style={{ background: config.accentColor }} 
+                className="flex-1 py-2 rounded-lg text-white font-bold text-sm"
+              >
+                Accent
+              </button>
             </div>
-            <span className="hint">Supporting color for gradients and accents</span>
-          </div>
-
-          <div className="form-group">
-            <label>Accent Color</label>
-            <div className="color-picker">
-              <input
-                type="color"
-                value={config.accentColor}
-                onChange={(e) => setConfig({ ...config, accentColor: e.target.value })}
-              />
-              <input
-                type="text"
-                value={config.accentColor}
-                onChange={(e) => setConfig({ ...config, accentColor: e.target.value })}
-                placeholder="#ff0080"
-              />
-            </div>
-            <span className="hint">Accent color for alerts and special elements</span>
-          </div>
-
-          <div className="color-preview">
-            <h4>Preview</h4>
-            <div className="preview-buttons">
-              <button style={{ background: config.primaryColor, color: '#000' }}>Primary Button</button>
-              <button style={{ background: config.secondaryColor, color: '#000' }}>Secondary Button</button>
-              <button style={{ background: config.accentColor, color: '#fff' }}>Accent Button</button>
-            </div>
-            <div
-              className="preview-gradient"
+            <div 
+              className="p-4 rounded-lg text-center font-bold text-white"
               style={{ background: `linear-gradient(135deg, ${config.primaryColor}, ${config.secondaryColor})` }}
             >
               Gradient Preview
@@ -266,229 +292,48 @@ export const WhiteLabel: React.FC<WhiteLabelProps> = ({ workspaceId }) => {
           </div>
         </div>
 
-        <div className="config-section">
-          <h3>Advanced Customization</h3>
+        {/* Advanced Customization */}
+        <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15 backdrop-blur-sm space-y-6">
+          <h3 className="text-lg font-bold text-white">Advanced Customization</h3>
+          
+          <label className="flex items-center gap-3 p-4 rounded-lg bg-slate-800/30 border border-cyan-500/10 cursor-pointer hover:border-cyan-500/20 transition-colors">
+            <input
+              type="checkbox"
+              checked={config.hideFooter}
+              onChange={(e) => setConfig({ ...config, hideFooter: e.target.checked })}
+              className="w-5 h-5 rounded border-cyan-500/30 bg-[#080F1A] text-cyan-500 focus:ring-cyan-500/30"
+            />
+            <div>
+              <span className="text-white font-medium">Hide "Powered by CrewAI" footer</span>
+              <p className="text-xs text-slate-500 mt-0.5">Remove attribution from your white-labeled instance</p>
+            </div>
+          </label>
 
-          <div className="form-group">
-            <label className="checkbox-label">
-              <input
-                type="checkbox"
-                checked={config.hideFooter}
-                onChange={(e) => setConfig({ ...config, hideFooter: e.target.checked })}
-              />
-              Hide "Powered by CrewAI" footer
-            </label>
-          </div>
-
-          <div className="form-group">
-            <label>Custom CSS</label>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Custom CSS</label>
             <textarea
               value={config.customCSS || ''}
               onChange={(e) => setConfig({ ...config, customCSS: e.target.value })}
               placeholder="/* Add your custom CSS here */"
-              rows={10}
+              rows={8}
+              className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-cyan-400 font-mono text-sm placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors resize-none"
             />
-            <span className="hint">Advanced: Override default styles with custom CSS</span>
+            <p className="text-xs text-slate-500 mt-2">Advanced: Override default styles with custom CSS</p>
           </div>
 
-          <div className="warning-box">
-            <h4>⚠️ Enterprise Feature</h4>
-            <p>White label customization is available on the Enterprise plan. Some features may be restricted on lower tiers.</p>
+          <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <div className="flex items-start gap-3">
+              <AlertTriangle size={20} className="text-orange-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-bold text-orange-400 mb-1">Enterprise Feature</h4>
+                <p className="text-sm text-slate-400">
+                  White label customization is available on the Enterprise plan. Some features may be restricted on lower tiers.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .white-label {
-          padding: 20px;
-          max-width: 1400px;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
-        .header-actions {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .toggle-label {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-weight: 600;
-        }
-
-        .btn-save {
-          background: #00ff9f;
-          color: #000;
-          padding: 10px 24px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-          font-size: 15px;
-        }
-
-        .btn-save:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .config-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-          gap: 30px;
-        }
-
-        .config-section {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          padding: 25px;
-        }
-
-        .config-section h3 {
-          margin-top: 0;
-          margin-bottom: 20px;
-          font-size: 20px;
-        }
-
-        .form-group {
-          margin-bottom: 25px;
-        }
-
-        .form-group label {
-          display: block;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .form-group input[type='text'],
-        .form-group input[type='file'],
-        .form-group textarea {
-          width: 100%;
-          padding: 10px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-          font-family: inherit;
-        }
-
-        .form-group textarea {
-          font-family: 'Monaco', 'Courier New', monospace;
-          font-size: 13px;
-        }
-
-        .hint {
-          display: block;
-          margin-top: 5px;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        .image-preview {
-          margin-bottom: 10px;
-          padding: 20px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-          text-align: center;
-        }
-
-        .image-preview img {
-          max-width: 100%;
-          max-height: 100px;
-        }
-
-        .image-preview.small img {
-          max-height: 32px;
-        }
-
-        .color-picker {
-          display: flex;
-          gap: 10px;
-        }
-
-        .color-picker input[type='color'] {
-          width: 60px;
-          height: 40px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .color-picker input[type='text'] {
-          flex: 1;
-        }
-
-        .color-preview {
-          margin-top: 30px;
-          padding: 20px;
-          background: rgba(0, 0, 0, 0.3);
-          border-radius: 8px;
-        }
-
-        .color-preview h4 {
-          margin-top: 0;
-          margin-bottom: 15px;
-        }
-
-        .preview-buttons {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 15px;
-        }
-
-        .preview-buttons button {
-          flex: 1;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .preview-gradient {
-          padding: 20px;
-          border-radius: 8px;
-          text-align: center;
-          font-weight: bold;
-          color: white;
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          cursor: pointer;
-        }
-
-        .warning-box {
-          background: rgba(255, 165, 0, 0.1);
-          border: 1px solid rgba(255, 165, 0, 0.3);
-          border-radius: 8px;
-          padding: 20px;
-          margin-top: 20px;
-        }
-
-        .warning-box h4 {
-          margin-top: 0;
-          margin-bottom: 10px;
-          color: #ffaa00;
-        }
-
-        .warning-box p {
-          margin: 0;
-          color: rgba(255, 255, 255, 0.8);
-          font-size: 14px;
-        }
-      `}</style>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { Key, Plus, Trash2, X, Copy, BookOpen, Check, Code, Shield } from 'lucide-react';
 
 interface APIKey {
   id: string;
@@ -17,6 +18,21 @@ interface APIDocsProps {
   workspaceId: string;
 }
 
+// 3D Hover effect helper
+const apply3DHover = (e: React.MouseEvent<HTMLElement>, intensity: number = 5) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+  const deltaX = (e.clientX - centerX) / (rect.width / 2);
+  const deltaY = (e.clientY - centerY) / (rect.height / 2);
+  
+  e.currentTarget.style.transform = `perspective(1000px) rotateX(${deltaY * -intensity}deg) rotateY(${deltaX * intensity}deg) translateY(-4px) scale(1.02)`;
+};
+
+const reset3DHover = (e: React.MouseEvent<HTMLElement>) => {
+  e.currentTarget.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+};
+
 export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
   const { hasPermission } = useAuth();
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
@@ -28,6 +44,7 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
     expiresInDays: 90,
   });
   const [activeTab, setActiveTab] = useState<'keys' | 'docs'>('keys');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const availablePermissions = [
     'agents:read',
@@ -110,20 +127,46 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
-    <div className="api-access">
-      <div className="header">
-        <h2>API Access</h2>
-        <div className="tabs">
-          <button className={activeTab === 'keys' ? 'active' : ''} onClick={() => setActiveTab('keys')}>
+    <div className="p-6 md:p-8 max-w-7xl space-y-8">
+      {/* Header */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+            <Key size={28} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" />
+          </div>
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-white">API Access</h1>
+            <p className="text-sm text-slate-400 font-mono">workspace.api.management</p>
+          </div>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex gap-2 p-1 rounded-lg bg-[#080F1A]/60 border border-cyan-500/15">
+          <button 
+            onClick={() => setActiveTab('keys')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'keys' 
+                ? 'bg-cyan-500 text-black' 
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
             API Keys
           </button>
-          <button className={activeTab === 'docs' ? 'active' : ''} onClick={() => setActiveTab('docs')}>
+          <button 
+            onClick={() => setActiveTab('docs')}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'docs' 
+                ? 'bg-cyan-500 text-black' 
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
             Documentation
           </button>
         </div>
@@ -131,44 +174,86 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
 
       {activeTab === 'keys' && (
         <>
-          <div className="subheader">
-            <p>Create and manage API keys for programmatic access</p>
+          {/* Subheader */}
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <p className="text-slate-400">Create and manage API keys for programmatic access</p>
             {hasPermission('settings:manage') && (
-              <button onClick={() => setShowCreateForm(true)} className="btn-create">
-                + Create API Key
+              <button 
+                onClick={() => setShowCreateForm(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all hover:scale-105"
+              >
+                <Plus size={18} />
+                Create API Key
               </button>
             )}
           </div>
 
+          {/* Create Modal */}
           {showCreateForm && (
-            <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
-              <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <h3>Create API Key</h3>
-                <form onSubmit={createAPIKey}>
-                  <label>
-                    Key Name
+            <div 
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+              onClick={() => setShowCreateForm(false)}
+            >
+              <div 
+                className="bg-[#0c1621] border border-cyan-500/20 rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between p-6 border-b border-cyan-500/10">
+                  <h2 className="text-xl font-bold text-white">Create API Key</h2>
+                  <button 
+                    onClick={() => setShowCreateForm(false)}
+                    className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                  >
+                    <X size={20} className="text-slate-400" />
+                  </button>
+                </div>
+                
+                <form onSubmit={createAPIKey} className="p-6 space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Key Name</label>
                     <input
                       type="text"
                       value={newKey.name}
                       onChange={(e) => setNewKey({ ...newKey, name: e.target.value })}
                       placeholder="Production API Key"
                       required
+                      className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                     />
-                  </label>
+                  </div>
 
-                  <label>
-                    API Type
-                    <select value={newKey.type} onChange={(e) => setNewKey({ ...newKey, type: e.target.value as any })}>
-                      <option value="rest">REST API</option>
-                      <option value="graphql">GraphQL API</option>
-                    </select>
-                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">API Type</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(['rest', 'graphql'] as const).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setNewKey({ ...newKey, type })}
+                          className={`p-3 rounded-lg border text-center uppercase transition-all ${
+                            newKey.type === type
+                              ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-400'
+                              : 'bg-[#080F1A] border-cyan-500/10 text-slate-400 hover:border-cyan-500/30'
+                          }`}
+                        >
+                          {type === 'rest' ? <Code size={20} className="mx-auto mb-1" /> : <Code size={20} className="mx-auto mb-1" />}
+                          <span className="text-sm">{type}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                  <label>
-                    Permissions
-                    <div className="permissions-list">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-3">Permissions</label>
+                    <div className="grid grid-cols-2 gap-2">
                       {availablePermissions.map((perm) => (
-                        <label key={perm} className="checkbox-label">
+                        <label 
+                          key={perm} 
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                            newKey.permissions.includes(perm)
+                              ? 'bg-cyan-500/10 border-cyan-500/30'
+                              : 'bg-[#080F1A] border-cyan-500/10 hover:border-cyan-500/20'
+                          }`}
+                        >
                           <input
                             type="checkbox"
                             checked={newKey.permissions.includes(perm)}
@@ -179,18 +264,25 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
                                 setNewKey({ ...newKey, permissions: newKey.permissions.filter((p) => p !== perm) });
                               }
                             }}
+                            className="sr-only"
                           />
-                          {perm}
+                          <div className={`w-4 h-4 rounded flex items-center justify-center ${
+                            newKey.permissions.includes(perm) ? 'bg-cyan-500' : 'bg-slate-700 border border-slate-600'
+                          }`}>
+                            {newKey.permissions.includes(perm) && <Check size={12} className="text-black" />}
+                          </div>
+                          <span className="text-slate-300">{perm}</span>
                         </label>
                       ))}
                     </div>
-                  </label>
+                  </div>
 
-                  <label>
-                    Expires In
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Expires In</label>
                     <select
                       value={newKey.expiresInDays}
                       onChange={(e) => setNewKey({ ...newKey, expiresInDays: parseInt(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-lg bg-[#080F1A] border border-cyan-500/20 text-white focus:outline-none focus:border-cyan-500/50 transition-colors"
                     >
                       <option value="30">30 days</option>
                       <option value="90">90 days</option>
@@ -198,13 +290,20 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
                       <option value="365">1 year</option>
                       <option value="-1">Never</option>
                     </select>
-                  </label>
+                  </div>
 
-                  <div className="form-actions">
-                    <button type="button" onClick={() => setShowCreateForm(false)} className="btn-cancel">
+                  <div className="flex gap-3 pt-4">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowCreateForm(false)}
+                      className="flex-1 py-3 rounded-lg bg-slate-700/50 text-slate-300 font-medium hover:bg-slate-700 transition-colors"
+                    >
                       Cancel
                     </button>
-                    <button type="submit" className="btn-submit">
+                    <button 
+                      type="submit"
+                      className="flex-1 py-3 rounded-lg bg-gradient-to-r from-cyan-500 to-emerald-500 text-black font-bold hover:opacity-90 transition-all"
+                    >
                       Create Key
                     </button>
                   </div>
@@ -213,470 +312,156 @@ export const APIAccess: React.FC<APIDocsProps> = ({ workspaceId }) => {
             </div>
           )}
 
-          <div className="keys-list">
-            {apiKeys.length === 0 ? (
-              <div className="empty-state">
-                <p>No API keys created yet</p>
-              </div>
-            ) : (
-              apiKeys.map((key) => (
-                <div key={key.id} className={`key-card ${!key.isActive ? 'inactive' : ''}`}>
-                  <div className="key-header">
-                    <h3>{key.name}</h3>
-                    <span className={`key-type ${key.type}`}>{key.type.toUpperCase()}</span>
+          {/* Keys List */}
+          {apiKeys.length === 0 ? (
+            <div className="text-center py-16">
+              <Key size={48} className="mx-auto text-slate-600 mb-4" />
+              <p className="text-slate-400 mb-2">No API keys created yet</p>
+              <p className="text-sm text-slate-500">Create your first API key to get started</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {apiKeys.map((key) => (
+                <div 
+                  key={key.id}
+                  className={`p-5 rounded-xl border backdrop-blur-sm ${
+                    key.isActive 
+                      ? 'bg-[#080F1A]/60 border-cyan-500/20' 
+                      : 'bg-[#080F1A]/30 border-slate-700/50 opacity-60'
+                  }`}
+                  style={{ 
+                    transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)',
+                    transition: 'all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                  }}
+                  onMouseMove={(e) => apply3DHover(e, 2)}
+                  onMouseLeave={reset3DHover}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-bold text-white">{key.name}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
+                        key.type === 'rest' 
+                          ? 'bg-cyan-500/20 text-cyan-400' 
+                          : 'bg-pink-500/20 text-pink-400'
+                      }`}>
+                        {key.type}
+                      </span>
+                    </div>
+                    
+                    {hasPermission('settings:manage') && key.isActive && (
+                      <button 
+                        onClick={() => revokeAPIKey(key.id)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                        Revoke
+                      </button>
+                    )}
                   </div>
-                  <div className="key-details">
-                    <div className="detail-row">
-                      <span className="label">Key:</span>
-                      <code onClick={() => copyToClipboard(key.key)}>{key.key.substring(0, 20)}...****</code>
-                      <button onClick={() => copyToClipboard(key.key)} className="btn-copy">
-                        📋
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500 w-20">Key:</span>
+                      <code className="flex-1 px-3 py-2 rounded-lg bg-slate-800/50 text-cyan-400 text-xs font-mono">
+                        {key.key.substring(0, 20)}...****
+                      </code>
+                      <button 
+                        onClick={() => copyToClipboard(key.key, key.id)}
+                        className="p-2 rounded-lg hover:bg-slate-700/50 transition-colors"
+                      >
+                        {copiedId === key.id ? (
+                          <Check size={16} className="text-emerald-400" />
+                        ) : (
+                          <Copy size={16} className="text-slate-400" />
+                        )}
                       </button>
                     </div>
-                    <div className="detail-row">
-                      <span className="label">Created:</span>
-                      <span>{new Date(key.createdAt).toLocaleDateString()}</span>
+                    
+                    <div className="flex gap-6 text-slate-400">
+                      <span>Created: {new Date(key.createdAt).toLocaleDateString()}</span>
+                      {key.expiresAt && <span>Expires: {new Date(key.expiresAt).toLocaleDateString()}</span>}
+                      {key.lastUsed && <span>Last used: {new Date(key.lastUsed).toLocaleDateString()}</span>}
                     </div>
-                    {key.expiresAt && (
-                      <div className="detail-row">
-                        <span className="label">Expires:</span>
-                        <span>{new Date(key.expiresAt).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                    {key.lastUsed && (
-                      <div className="detail-row">
-                        <span className="label">Last Used:</span>
-                        <span>{new Date(key.lastUsed).toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="permissions-tags">
+                    
+                    <div className="flex flex-wrap gap-2 pt-2">
                       {key.permissions.map((perm) => (
-                        <span key={perm} className="perm-tag">
+                        <span 
+                          key={perm} 
+                          className="px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs"
+                        >
                           {perm}
                         </span>
                       ))}
                     </div>
                   </div>
-                  {hasPermission('settings:manage') && key.isActive && (
-                    <button onClick={() => revokeAPIKey(key.id)} className="btn-revoke">
-                      Revoke Key
-                    </button>
-                  )}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </>
       )}
 
       {activeTab === 'docs' && (
-        <div className="api-docs">
-          <h3>REST API Documentation</h3>
-          <div className="endpoint-section">
-            <h4>Authentication</h4>
-            <p>Include your API key in the Authorization header:</p>
-            <pre>
-              <code>Authorization: Bearer YOUR_API_KEY</code>
+        <div className="max-w-4xl space-y-8">
+          <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Shield size={18} className="text-cyan-400" />
+              Authentication
+            </h3>
+            <p className="text-slate-400 mb-4">Include your API key in the Authorization header:</p>
+            <pre className="p-4 rounded-lg bg-slate-900/50 border border-cyan-500/10 overflow-x-auto">
+              <code className="text-cyan-400 font-mono text-sm">Authorization: Bearer YOUR_API_KEY</code>
             </pre>
           </div>
 
-          <div className="endpoint-section">
-            <h4>Run a Workflow</h4>
-            <div className="endpoint-card">
-              <div className="method">POST</div>
-              <code>/api/v1/workflows/{'{workflowId}'}/run</code>
-            </div>
-            <pre>
-              <code>
-{`curl -X POST https://api.crewai.com/api/v1/workflows/123/run \\
+          <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <BookOpen size={18} className="text-emerald-400" />
+              REST API
+            </h3>
+            
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 rounded bg-emerald-500 text-black text-xs font-bold">POST</span>
+                  <code className="text-white font-mono">/api/v1/workflows/{'{workflowId}'}/run</code>
+                </div>
+                <pre className="p-4 rounded-lg bg-slate-900/50 border border-cyan-500/10 overflow-x-auto text-sm">
+                  <code className="text-cyan-400 font-mono">{`curl -X POST https://api.crewai.com/api/v1/workflows/123/run \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
-  -d '{
-    "inputs": {
-      "topic": "AI trends 2024"
-    }
-  }'`}
-              </code>
-            </pre>
-          </div>
-
-          <div className="endpoint-section">
-            <h4>List Agents</h4>
-            <div className="endpoint-card">
-              <div className="method get">GET</div>
-              <code>/api/v1/agents</code>
+  -d '{"inputs": {"topic": "AI trends 2024"}}'`}</code>
+                </pre>
+              </div>
+              
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="px-3 py-1 rounded bg-cyan-500 text-black text-xs font-bold">GET</span>
+                  <code className="text-white font-mono">/api/v1/agents</code>
+                </div>
+                <pre className="p-4 rounded-lg bg-slate-900/50 border border-cyan-500/10 overflow-x-auto text-sm">
+                  <code className="text-cyan-400 font-mono">{`curl -X GET https://api.crewai.com/api/v1/agents \\
+  -H "Authorization: Bearer YOUR_API_KEY"`}</code>
+                </pre>
+              </div>
             </div>
-            <pre>
-              <code>
-{`curl -X GET https://api.crewai.com/api/v1/agents \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-              </code>
-            </pre>
           </div>
 
-          <div className="endpoint-section">
-            <h4>Create Agent</h4>
-            <div className="endpoint-card">
-              <div className="method">POST</div>
-              <code>/api/v1/agents</code>
-            </div>
-            <pre>
-              <code>
-{`curl -X POST https://api.crewai.com/api/v1/agents \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "name": "Research Agent",
-    "role": "Senior Researcher",
-    "goal": "Find latest information",
-    "backstory": "Expert in research"
-  }'`}
-              </code>
-            </pre>
-          </div>
-
-          <h3>GraphQL API</h3>
-          <div className="endpoint-section">
-            <p>GraphQL endpoint:</p>
-            <pre>
-              <code>https://api.crewai.com/graphql</code>
-            </pre>
-          </div>
-
-          <div className="endpoint-section">
-            <h4>Example Query</h4>
-            <pre>
-              <code>
-{`query {
-  agents {
-    id
-    name
-    role
-    status
-  }
-  workflows {
-    id
-    name
-    agents {
-      name
-    }
-  }
-}`}
-              </code>
-            </pre>
-          </div>
-
-          <div className="endpoint-section">
-            <h4>Example Mutation</h4>
-            <pre>
-              <code>
-{`mutation {
-  runWorkflow(
-    workflowId: "123"
-    inputs: { topic: "AI trends 2024" }
-  ) {
-    runId
-    status
-    startedAt
-  }
-}`}
-              </code>
+          <div className="p-6 rounded-xl bg-[#080F1A]/60 border border-cyan-500/15">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Code size={18} className="text-pink-400" />
+              GraphQL API
+            </h3>
+            <p className="text-slate-400 mb-4">Endpoint: <code className="text-cyan-400">https://api.crewai.com/graphql</code></p>
+            <pre className="p-4 rounded-lg bg-slate-900/50 border border-cyan-500/10 overflow-x-auto text-sm">
+              <code className="text-cyan-400 font-mono">{`query {
+  agents { id name role status }
+  workflows { id name agents { name } }
+}`}</code>
             </pre>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .api-access {
-          padding: 20px;
-        }
-
-        .header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .tabs {
-          display: flex;
-          gap: 10px;
-        }
-
-        .tabs button {
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.7);
-          padding: 8px 20px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: 600;
-        }
-
-        .tabs button.active {
-          background: #00ff9f;
-          color: #000;
-          border-color: #00ff9f;
-        }
-
-        .subheader {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 30px;
-        }
-
-        .subheader p {
-          color: rgba(255, 255, 255, 0.7);
-        }
-
-        .btn-create {
-          background: #00ff9f;
-          color: #000;
-          padding: 10px 20px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.8);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: #1a1a1a;
-          padding: 30px;
-          border-radius: 12px;
-          max-width: 500px;
-          width: 90%;
-          max-height: 90vh;
-          overflow-y: auto;
-        }
-
-        .modal label {
-          display: block;
-          margin-bottom: 15px;
-          font-weight: 600;
-        }
-
-        .modal input,
-        .modal select {
-          display: block;
-          width: 100%;
-          padding: 10px;
-          margin-top: 5px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          background: rgba(0, 0, 0, 0.3);
-          color: white;
-        }
-
-        .permissions-list {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 10px;
-          margin-top: 10px;
-        }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: normal;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 10px;
-          margin-top: 20px;
-        }
-
-        .btn-cancel {
-          flex: 1;
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .btn-submit {
-          flex: 1;
-          background: #00ff9f;
-          color: #000;
-          padding: 10px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-weight: bold;
-        }
-
-        .keys-list {
-          display: grid;
-          gap: 20px;
-        }
-
-        .empty-state {
-          text-align: center;
-          padding: 60px 20px;
-          color: rgba(255, 255, 255, 0.5);
-        }
-
-        .key-card {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 8px;
-          padding: 20px;
-        }
-
-        .key-card.inactive {
-          opacity: 0.5;
-        }
-
-        .key-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .key-header h3 {
-          margin: 0;
-        }
-
-        .key-type {
-          padding: 4px 12px;
-          border-radius: 12px;
-          font-size: 11px;
-          font-weight: bold;
-        }
-
-        .key-type.rest {
-          background: rgba(0, 212, 255, 0.2);
-          color: #00d4ff;
-        }
-
-        .key-type.graphql {
-          background: rgba(255, 0, 128, 0.2);
-          color: #ff0080;
-        }
-
-        .key-details {
-          margin-bottom: 15px;
-        }
-
-        .detail-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin-bottom: 8px;
-          font-size: 14px;
-        }
-
-        .detail-row .label {
-          color: rgba(255, 255, 255, 0.6);
-          min-width: 80px;
-        }
-
-        .detail-row code {
-          flex: 1;
-          background: rgba(0, 0, 0, 0.3);
-          padding: 6px 10px;
-          border-radius: 4px;
-          font-size: 13px;
-          cursor: pointer;
-        }
-
-        .btn-copy {
-          background: none;
-          border: none;
-          cursor: pointer;
-          font-size: 16px;
-        }
-
-        .permissions-tags {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 10px;
-        }
-
-        .perm-tag {
-          background: rgba(0, 255, 159, 0.2);
-          color: #00ff9f;
-          padding: 4px 10px;
-          border-radius: 12px;
-          font-size: 11px;
-        }
-
-        .btn-revoke {
-          background: #ff4444;
-          color: white;
-          padding: 8px 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-
-        .api-docs {
-          max-width: 900px;
-        }
-
-        .endpoint-section {
-          margin-bottom: 30px;
-        }
-
-        .endpoint-section h4 {
-          margin-bottom: 10px;
-        }
-
-        .endpoint-card {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
-          padding: 15px;
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 8px;
-        }
-
-        .method {
-          background: #00ff9f;
-          color: #000;
-          padding: 6px 12px;
-          border-radius: 4px;
-          font-weight: bold;
-          font-size: 13px;
-        }
-
-        .method.get {
-          background: #00d4ff;
-        }
-
-        .api-docs pre {
-          background: rgba(0, 0, 0, 0.5);
-          padding: 15px;
-          border-radius: 8px;
-          overflow-x: auto;
-        }
-
-        .api-docs code {
-          color: #00ff9f;
-          font-size: 13px;
-          line-height: 1.6;
-        }
-      `}</style>
     </div>
   );
 };

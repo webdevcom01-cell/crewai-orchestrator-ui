@@ -584,30 +584,32 @@ const TemplatesLibrary: React.FC = () => {
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
-              <Sparkles className="text-cyan-400" />
-              Templates Library
-            </h1>
-            <p className="text-slate-400 mt-1">Ready-to-use workflow templates to get you started quickly.</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+              <Sparkles size={24} className="text-cyan-400 drop-shadow-[0_0_8px_rgba(34,197,220,0.5)]" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-white">Templates Library</h1>
+              <p className="text-sm text-slate-400 font-mono">workspace.templates</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg border transition-all ${
+              className={`p-2.5 rounded-lg border transition-all ${
                 viewMode === 'grid' 
                   ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400' 
-                  : 'border-slate-500/30 text-slate-400 hover:text-white'
+                  : 'border-cyan-500/20 text-slate-400 hover:text-white hover:bg-cyan-500/10'
               }`}
             >
               <Grid size={18} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg border transition-all ${
+              className={`p-2.5 rounded-lg border transition-all ${
                 viewMode === 'list' 
                   ? 'bg-cyan-500/20 border-cyan-500/30 text-cyan-400' 
-                  : 'border-slate-500/30 text-slate-400 hover:text-white'
+                  : 'border-cyan-500/20 text-slate-400 hover:text-white hover:bg-cyan-500/10'
               }`}
             >
               <List size={18} />
